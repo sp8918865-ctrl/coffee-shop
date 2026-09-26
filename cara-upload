@@ -1,0 +1,11 @@
+pertama
+cd C:\Users\surya\Documents
+
+buat nama polder bebas contoh;
+cd coffee-shop
+
+jalankan ini berurutan;
+composer install
+npm install
+copy .env.example .env
+php artisan key:generate
