@@ -23,3 +23,7 @@ Route::get('/admin/menu', function () {
 Route::get('/admin/pesanan', function () {
     return view('admin.pesanan');
 })->name('admin.pesanan');
+
+Route::get('/admin/staf', function () {
+    return view('admin.staf');
+})->name('admin.staf');
