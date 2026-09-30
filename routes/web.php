@@ -27,3 +27,7 @@ Route::get('/admin/pesanan', function () {
 Route::get('/admin/staf', function () {
     return view('admin.staf');
 })->name('admin.staf');
+
+Route::get('/admin/bahan', function () {
+    return view('admin.bahan');
+})->name('admin.bahan');

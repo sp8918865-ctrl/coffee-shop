@@ -28,17 +28,45 @@
                 <p class="text-[11px] text-slate-400">Specialty & Slow Bar</p>
             </div>
 
-            <!-- NAVIGASI -->
+            <!-- NAVIGASI LENGKAP -->
             <nav class="space-y-1 text-xs font-medium">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#182030] transition">
+                <!-- Dasbor & Pendapatan -->
+                <a href="{{ route('admin.dashboard') }}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.dashboard') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-[#182030] transition' }}">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                     <span>Dasbor & Pendapatan</span>
                 </a>
-                <a href="{{ route('admin.menu') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold">
+
+                <!-- Pesanan Diterima -->
+                <a href="{{ route('admin.pesanan') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.pesanan') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-[#182030] transition' }}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="receipt" class="w-4 h-4"></i>
+                        <span>Pesanan Diterima</span>
+                    </div>
+                    <span class="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold">12</span>
+                </a>
+
+                <!-- Data Barista & Staf -->
+                <a href="{{ route('admin.staf') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.staf') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-[#182030] transition' }}">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Data Barista & Staf</span>
+                    </div>
+                    <span class="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold">4 On Shift</span>
+                </a>
+
+                <!-- Kelola Menu & Stok -->
+                <a href="{{ route('admin.menu') }}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.menu') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-[#182030] transition' }}">
                     <i data-lucide="coffee" class="w-4 h-4"></i>
                     <span>Kelola Menu & Stok</span>
                 </a>
-                <a href="{{ route('admin.bahan') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#182030] transition">
+
+                <!-- Belanja Bahan Baku -->
+                <a href="{{ route('admin.bahan') }}" 
+                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl {{ request()->routeIs('admin.bahan') ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20 font-semibold' : 'text-slate-400 hover:text-white hover:bg-[#182030] transition' }}">
                     <i data-lucide="shopping-bag" class="w-4 h-4"></i>
                     <span>Belanja Bahan Baku</span>
                 </a>
