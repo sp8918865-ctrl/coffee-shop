@@ -19,3 +19,7 @@ Route::get('/admin/dashboard', function () {
 Route::get('/admin/menu', function () {
     return view('admin.menu');
 })->name('admin.menu');
+
+Route::get('/admin/pesanan', function () {
+    return view('admin.pesanan');
+})->name('admin.pesanan');
