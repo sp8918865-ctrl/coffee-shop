@@ -16,7 +16,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col md:flex-row antialiased">
+<body class="min-h-screen flex flex-col md:flex-row antialiased relative">
 
     <!-- SIDEBAR KIRI -->
     <aside class="w-full md:w-64 bg-[#0e1420] border-r border-[#1e293b] p-5 flex flex-col justify-between shrink-0">
@@ -38,7 +38,7 @@
                     <i data-lucide="coffee" class="w-4 h-4"></i>
                     <span>Kelola Menu & Stok</span>
                 </a>
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#182030] transition">
+                <a href="{{ route('admin.bahan') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#182030] transition">
                     <i data-lucide="shopping-bag" class="w-4 h-4"></i>
                     <span>Belanja Bahan Baku</span>
                 </a>
@@ -77,7 +77,7 @@
                 </div>
             </div>
 
-            <!-- PROFILE -->
+            <!-- PROFILE & NOTIFIKASI -->
             <div class="flex items-center gap-3">
                 <button class="p-2 rounded-xl bg-[#121824] border border-[#1e293b] text-slate-400 hover:text-white relative">
                     <i data-lucide="bell" class="w-4 h-4"></i>
@@ -101,14 +101,14 @@
                 <h2 class="text-2xl font-bold text-white tracking-tight">Katalog Menu & Ketersediaan Stok</h2>
                 <p class="text-xs text-slate-400 mt-1">Kelola status menu, harga, dan ketersediaan stok bar secara langsung.</p>
             </div>
-            <button class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-amber-500/10">
+            <button onclick="toggleModal('modal-tambah')" class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-amber-500/10">
                 <i data-lucide="plus" class="w-4 h-4"></i>
                 <span>Tambah Menu Baru</span>
             </button>
         </div>
 
         <!-- BANNER PERINGATAN STOK HABIS -->
-        <div class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between text-xs">
+        <div id="alert-banner" class="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-center justify-between text-xs">
             <div class="flex items-center gap-3 text-rose-300">
                 <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-400 shrink-0"></i>
                 <span><strong>3 Menu dinonaktifkan otomatis:</strong> Avocado Float, Matcha Latte, Croissant (Bahan Habis)</span>
@@ -117,7 +117,7 @@
                 <button class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 rounded-lg text-[11px] font-semibold transition">
                     Lihat Bahan
                 </button>
-                <button class="text-slate-400 hover:text-white">
+                <button onclick="document.getElementById('alert-banner').remove()" class="text-slate-400 hover:text-white">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -358,10 +358,68 @@
 
     </main>
 
+    <!-- MODAL TAMBAH MENU BARU -->
+    <div id="modal-tambah" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-[#121824] border border-[#1e293b] rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-[#1e293b] pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="coffee" class="w-4 h-4 text-amber-500"></i>
+                    Tambah Menu Baru
+                </h3>
+                <button onclick="toggleModal('modal-tambah')" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form action="#" method="POST" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Nama Menu</label>
+                    <input type="text" placeholder="Contoh: Cold Brew Citrus Nitro" class="w-full bg-[#182030] border border-[#1e293b] rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Kategori</label>
+                        <select class="w-full bg-[#182030] border border-[#1e293b] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500">
+                            <option>Kopi Spesialis</option>
+                            <option>Kopi Ekspres</option>
+                            <option>Manual Slow Bar</option>
+                            <option>Non-Kopi</option>
+                            <option>Pastry & Bakery</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Harga (Rp)</label>
+                        <input type="number" placeholder="35000" class="w-full bg-[#182030] border border-[#1e293b] rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Kode SKU</label>
+                    <input type="text" placeholder="SKU-CF-NITRO-01" class="w-full bg-[#182030] border border-[#1e293b] rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-[#1e293b]">
+                    <button type="button" onclick="toggleModal('modal-tambah')" class="px-4 py-2 rounded-xl border border-[#1e293b] text-slate-300 hover:bg-[#182030] font-medium transition">
+                        Batal
+                    </button>
+                    <button type="button" onclick="toggleModal('modal-tambah')" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition">
+                        Simpan Menu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             lucide.createIcons();
         });
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
     </script>
 </body>
 </html>

@@ -45,7 +45,7 @@
             </nav>
         </div>
 
-        <!-- FOOTER SIDEBAR -->
+        <!-- SIDEBAR FOOTER -->
         <div class="pt-6 border-t border-[#1e293b] space-y-4">
             <div class="text-[11px]">
                 <span class="text-amber-500 font-semibold block text-[10px] tracking-wider">TERMINAL READY</span>
@@ -72,7 +72,7 @@
                     <span class="flex items-center gap-1.5 font-bold text-white">
                         <span class="w-2 h-2 rounded-full bg-amber-500"></span> Warung Luwak Console
                     </span>
-                    <span>• BARUTAMA</span>
+                    <span>• BAR UTAMA</span>
                     <span>• TERMINAL 01</span>
                 </div>
                 <div class="text-[11px] text-slate-400 flex items-center gap-2">
@@ -189,7 +189,7 @@
                 </div>
             </div>
 
-            <!-- AREA VISUALISASI GRAFIK (PLACEHOLDER MOCKUP) -->
+            <!-- AREA VISUALISASI GRAFIK -->
             <div class="h-48 w-full bg-[#0b0f17] border border-[#1e293b] rounded-xl flex items-end justify-between p-4 relative overflow-hidden">
                 <!-- Peak Label -->
                 <div class="absolute top-3 left-1/2 -translate-x-1/2 bg-amber-500/20 border border-amber-500/40 px-3 py-1 rounded-full text-[10px] text-amber-400 font-bold">
