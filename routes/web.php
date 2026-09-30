@@ -15,3 +15,7 @@ Route::get('/login', function () {
 Route::get('/admin/dashboard', function () {
     return view('admin.dashboard');
 })->name('admin.dashboard');
+
+Route::get('/admin/menu', function () {
+    return view('admin.menu');
+})->name('admin.menu');
