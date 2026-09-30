@@ -1,10 +1,17 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HealthCheckController;
 
+// 1. Tampilkan Halaman Login jika diakses dari '/' atau '/login'
 Route::get('/', function () {
-    return view('welcome');
+    return view('login.login');
+})->name('login');
+
+Route::get('/login', function () {
+    return view('login.login');
 });
 
-Route::get('/healthcheck', [HealthCheckController::class, 'check']);
+// 2. Tampilkan Halaman Dashboard saat Form Disubmit
+Route::get('/admin/dashboard', function () {
+    return view('admin.dashboard');
+})->name('admin.dashboard');
