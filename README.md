@@ -64,3 +64,12 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Warung Luwak Setup
+
+1. Configure `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in `.env` for your database.
+2. Set a private `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`. Do not commit `.env`.
+3. Run `php artisan key:generate`, `php artisan migrate`, and `php artisan db:seed`.
+4. Start the app with `php artisan serve` and sign in using the admin email and password configured above.
+
+The seeder creates or updates the initial administrator only when both admin environment variables are set. Admin CRUD pages require an authenticated account outside the local environment. In `APP_ENV=local`, login intentionally accepts any input and admin pages are open for development only; never deploy with `APP_ENV=local`.
