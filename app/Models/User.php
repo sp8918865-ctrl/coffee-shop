@@ -20,7 +20,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'password',
+        'password_hash',
+        'role',
     ];
 
     /**
@@ -29,9 +30,11 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $hidden = [
-        'password',
+        'password_hash',
         'remember_token',
     ];
+
+    protected $primaryKey = 'user_id';
 
     /**
      * Get the attributes that should be cast.
@@ -42,7 +45,22 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password_hash' => 'hashed',
         ];
+    }
+
+    public function getAuthPasswordName()
+    {
+        return 'password_hash';
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'user_id', 'user_id');
+    }
+
+    public function processedPayments()
+    {
+        return $this->hasMany(Payment::class, 'processed_by_user_id', 'user_id');
     }
 }

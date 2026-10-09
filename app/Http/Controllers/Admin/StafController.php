@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class StafController extends Controller
@@ -26,7 +27,8 @@ class StafController extends Controller
             'password' => ['required', 'string', 'min:8'],
         ]);
 
-        $data['password'] = Hash::make($data['password']);
+        $data['password_hash'] = Hash::make($data['password']);
+        unset($data['password']);
         User::create($data);
 
         return redirect()->route('admin.staf')->with('success', 'Data staf berhasil ditambahkan.');
@@ -36,15 +38,16 @@ class StafController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->user_id, 'user_id')],
             'password' => ['nullable', 'string', 'min:8'],
         ]);
 
         if (filled($data['password'] ?? null)) {
-            $data['password'] = Hash::make($data['password']);
+            $data['password_hash'] = Hash::make($data['password']);
         } else {
             unset($data['password']);
         }
+        unset($data['password']);
 
         $user->update($data);
 

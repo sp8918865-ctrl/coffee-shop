@@ -23,7 +23,8 @@ class DatabaseSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => env('ADMIN_NAME', 'Administrator'),
-                'password' => $password,
+                'password_hash' => $password,
+                'role' => 'owner',
             ]
         );
     }

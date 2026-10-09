@@ -14,7 +14,7 @@
 @endif
 <form method="GET" action="{{ route('admin.menu') }}" class="flex flex-col gap-3 rounded-xl border border-[#1e293b] bg-[#121824] p-3 sm:flex-row sm:items-center">
     <label class="relative min-w-0 flex-1"><i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"></i><input name="search" value="{{ request('search') }}" placeholder="Cari nama menu atau SKU..." class="w-full rounded-lg border border-[#26334d] bg-[#0b0f17] py-2 pl-9 pr-3 text-xs text-white placeholder-slate-500"></label>
-    <select name="category_id" class="rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-xs text-white"><option value="">Semua kategori ({{ $totalProducts }})</option>@foreach ($categories as $category)<option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }} ({{ $category->products_count }})</option>@endforeach</select>
+    <select name="category_id" class="rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-xs text-white"><option value="">Semua kategori ({{ $totalProducts }})</option>@foreach ($categories as $category)<option value="{{ $category->category_id }}" @selected((string) request('category_id') === (string) $category->category_id)>{{ $category->name }} ({{ $category->products_count }})</option>@endforeach</select>
     <label class="flex items-center gap-2 whitespace-nowrap text-xs text-slate-300"><input type="checkbox" name="unavailable" value="1" @checked(request()->boolean('unavailable')) class="rounded border-[#26334d] bg-[#0b0f17] text-amber-500">Hanya menu habis</label>
     <button class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/20">Terapkan</button>
 </form>
@@ -27,7 +27,7 @@
             <h2 class="mb-4 text-sm font-semibold text-white">Tambah menu</h2>
             <div class="grid gap-3 sm:grid-cols-2">
                 <label class="text-xs text-slate-300">Nama menu<input name="name" required maxlength="255" value="{{ old('name') }}" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-white"></label>
-                <label class="text-xs text-slate-300">Kategori<select name="category_id" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-white"><option value="">Tanpa kategori</option>@foreach ($categories as $category)<option value="{{ $category->id }}">{{ $category->name }}</option>@endforeach</select></label>
+                <label class="text-xs text-slate-300">Kategori<select name="category_id" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-white"><option value="">Tanpa kategori</option>@foreach ($categories as $category)<option value="{{ $category->category_id }}">{{ $category->name }}</option>@endforeach</select></label>
                 <label class="text-xs text-slate-300">SKU<input name="sku" maxlength="255" value="{{ old('sku') }}" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-white"></label>
                 <label class="text-xs text-slate-300">Harga (Rp)<input name="price" type="number" min="0" step="0.01" required value="{{ old('price') }}" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-white"></label>
             </div>
@@ -49,7 +49,7 @@
                             <form method="POST" action="{{ route('admin.menu.update', $product) }}" class="mt-2 grid gap-2 rounded-lg border border-[#26334d] p-3">
                                 @csrf @method('PUT')
                                 <input name="name" required value="{{ $product->name }}" class="rounded bg-[#0b0f17] px-2 py-1 text-white">
-                                <select name="category_id" class="rounded bg-[#0b0f17] px-2 py-1 text-white"><option value="">Tanpa kategori</option>@foreach ($categories as $category)<option value="{{ $category->id }}" @selected($product->category_id === $category->id)>{{ $category->name }}</option>@endforeach</select>
+                                <select name="category_id" class="rounded bg-[#0b0f17] px-2 py-1 text-white"><option value="">Tanpa kategori</option>@foreach ($categories as $category)<option value="{{ $category->category_id }}" @selected($product->category_id === $category->category_id)>{{ $category->name }}</option>@endforeach</select>
                                 <input name="sku" value="{{ $product->sku }}" placeholder="SKU" class="rounded bg-[#0b0f17] px-2 py-1 text-white">
                                 <input name="price" type="number" min="0" step="0.01" required value="{{ $product->price }}" class="rounded bg-[#0b0f17] px-2 py-1 text-white">
                                 <label class="flex items-center gap-2"><input name="is_available" type="checkbox" value="1" @checked($product->is_available)> Tersedia</label>

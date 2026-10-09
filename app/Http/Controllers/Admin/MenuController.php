@@ -79,8 +79,8 @@ class MenuController extends Controller
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'category_id' => ['nullable', 'exists:categories,id'],
-            'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product?->id)],
+            'category_id' => ['nullable', 'exists:categories,category_id'],
+            'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product?->product_id, 'product_id')],
             'price' => ['required', 'numeric', 'min:0'],
             'is_available' => ['nullable', 'boolean'],
         ]) + ['is_available' => $request->boolean('is_available')];

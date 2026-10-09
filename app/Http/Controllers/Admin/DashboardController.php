@@ -11,7 +11,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $pesananSelesaiHariIni = Order::where('status', 'completed')->whereDate('created_at', today());
+        $pesananSelesaiHariIni = Order::where('order_status', 'completed')->whereDate('created_at', today());
         $totalPendapatan = (clone $pesananSelesaiHariIni)->sum('total_amount');
         $totalPesananHariIni = Order::whereDate('created_at', today())->count();
         $rataRataPesanan = (clone $pesananSelesaiHariIni)->avg('total_amount') ?? 0;
@@ -20,7 +20,6 @@ class DashboardController extends Controller
         $jumlahMenu = Product::count();
         $jumlahMenuHabis = Product::where('is_available', false)->count();
         $daftarBahanKritis = $bahanKritis->pluck('name')->take(3)->join(', ') ?: 'Tidak ada bahan kritis';
-
         return view('admin.dashboard', compact(
             'totalPendapatan', 'totalPesananHariIni', 'rataRataPesanan',
             'bahanKritis', 'pesananTerbaru', 'jumlahMenu', 'jumlahMenuHabis',

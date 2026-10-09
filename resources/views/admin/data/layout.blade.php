@@ -17,12 +17,27 @@
                         <span><span class="mb-1 block text-[10px] font-mono tracking-widest text-amber-500">ROASTERY ENGINE OS</span><span class="font-bold tracking-wide text-white">Warung Luwak</span><span class="block text-[11px] text-slate-400">Specialty & Slow Bar</span></span>
                     </span>
                 </a>
+                @php
+                    $adminMenu = [
+                        ['label' => 'Dasbor & Pendapatan', 'route' => 'admin.dashboard', 'icon' => 'layout-dashboard'],
+                        ['label' => 'Kelola Menu', 'route' => 'admin.menu', 'icon' => 'coffee'],
+                        ['label' => 'Kelola Meja', 'route' => 'admin.tables', 'icon' => 'armchair'],
+                        ['label' => 'Stok Bahan', 'route' => 'admin.bahan', 'icon' => 'shopping-bag'],
+                        ['label' => 'Pesanan', 'route' => 'admin.pesanan', 'icon' => 'receipt'],
+                        ['label' => 'QR Menu Publik', 'route' => 'admin.qr-menu', 'icon' => 'qr-code'],
+                        ['label' => 'Data Barista & Staf', 'route' => 'admin.staf', 'icon' => 'users'],
+                    ];
+                @endphp
                 <nav class="flex gap-1 overflow-x-auto text-xs font-medium md:flex-col">
-                    <a class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs('admin.dashboard') ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}" href="{{ route('admin.dashboard') }}"><i data-lucide="layout-dashboard" class="h-4 w-4"></i>Dasbor & Pendapatan</a>
-                    <a class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs('admin.menu') ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}" href="{{ route('admin.menu') }}"><i data-lucide="coffee" class="h-4 w-4"></i>Kelola Menu</a>
-                    <a class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs('admin.bahan') ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}" href="{{ route('admin.bahan') }}"><i data-lucide="shopping-bag" class="h-4 w-4"></i>Stok Bahan</a>
-                    <a class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs('admin.pesanan') ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}" href="{{ route('admin.pesanan') }}"><i data-lucide="receipt" class="h-4 w-4"></i>Pesanan</a>
-                    <a class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs('admin.staf') ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}" href="{{ route('admin.staf') }}"><i data-lucide="users" class="h-4 w-4"></i>Data Barista & Staf</a>
+                    @foreach ($adminMenu as $menuItem)
+                        <a
+                            href="{{ route($menuItem['route']) }}"
+                            class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs($menuItem['route']) ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}"
+                        >
+                            <i data-lucide="{{ $menuItem['icon'] }}" class="h-4 w-4"></i>
+                            <span>{{ $menuItem['label'] }}</span>
+                        </a>
+                    @endforeach
                 </nav>
                 <form method="POST" action="{{ route('logout') }}" class="mt-2 md:hidden">@csrf<button class="flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-medium text-rose-400"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar</button></form>
             </div>
