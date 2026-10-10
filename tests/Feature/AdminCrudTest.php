@@ -104,16 +104,16 @@ class AdminCrudTest extends TestCase
         $this->post(route('admin.menu.store'), [
             'name' => 'Kopi Susu',
             'category_id' => $category->category_id,
-            'sku' => 'KOPI-001',
+            'stok' => '15',
             'price' => 25000,
             'is_available' => '1',
         ])->assertRedirect(route('admin.menu'));
-        $product = Product::where('sku', 'KOPI-001')->firstOrFail();
+        $product = Product::where('stok', '15')->firstOrFail();
 
         $this->put(route('admin.menu.update', $product), [
             'name' => 'Kopi Susu Aren',
             'category_id' => $category->category_id,
-            'sku' => 'KOPI-001',
+            'stok' => '15',
             'price' => 27000,
             'is_available' => '1',
         ])->assertRedirect(route('admin.menu'));
@@ -162,16 +162,29 @@ class AdminCrudTest extends TestCase
             'name' => 'Ayu Barista',
             'email' => 'ayu@example.test',
             'password' => 'secret123',
+            'role' => 'barista',
         ])->assertRedirect(route('admin.staf'));
         $user = User::where('email', 'ayu@example.test')->firstOrFail();
         $this->assertTrue(Hash::check('secret123', $user->password_hash));
+        $this->assertSame('barista', $user->role);
 
         $this->put(route('admin.staf.update', $user), [
             'name' => 'Ayu Senior',
             'email' => 'ayu@example.test',
             'password' => '',
+            'role' => 'barista',
         ])->assertRedirect(route('admin.staf'));
         $this->assertDatabaseHas('users', ['user_id' => $user->user_id, 'name' => 'Ayu Senior']);
+
+        $this->post(route('admin.staf.store'), [
+            'name' => 'Dewi Admin',
+            'email' => 'dewi-admin@example.test',
+            'password' => 'secret123',
+            'role' => 'admin',
+        ])->assertRedirect(route('admin.staf'));
+        $admin = User::where('email', 'dewi-admin@example.test')->firstOrFail();
+        $this->assertSame('admin', $admin->role);
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
 
         $this->delete(route('admin.staf.destroy', $user))->assertRedirect(route('admin.staf'));
         $this->assertDatabaseMissing('users', ['user_id' => $user->user_id]);
@@ -182,7 +195,7 @@ class AdminCrudTest extends TestCase
         $user = User::factory()->create();
         $this->actingAs($user);
 
-        $product = Product::create(['name' => 'Espresso', 'sku' => 'ESP-001', 'price' => 18000, 'is_available' => true]);
+        $product = Product::create(['name' => 'Espresso', 'stok' => '8', 'price' => 18000, 'is_available' => true]);
         $table = DiningTable::create(['table_number' => '05', 'capacity' => 2, 'status' => 'available']);
 
         $this->post(route('admin.pesanan.store'), [

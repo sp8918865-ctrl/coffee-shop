@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('category_id')->nullable()->constrained()->nullOnDelete();
             $table->string('name');
-            $table->string('sku')->nullable()->unique();
+            $table->integer('stok')->nullable();
             $table->decimal('price', 10, 2)->default(0);
             $table->timestamps();
         });

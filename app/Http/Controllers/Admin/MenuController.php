@@ -19,7 +19,7 @@ class MenuController extends Controller
                 $search = $request->string('search')->toString();
                 $query->where(function ($query) use ($search): void {
                     $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhere('stok', 'like', "%{$search}%");
                 });
             })
             ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->input('category_id')))
@@ -80,7 +80,7 @@ class MenuController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['nullable', 'exists:categories,category_id'],
-            'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product?->product_id, 'product_id')],
+            'stok' => ['nullable', 'integer', 'min:0'],
             'price' => ['required', 'numeric', 'min:0'],
             'is_available' => ['nullable', 'boolean'],
         ]) + ['is_available' => $request->boolean('is_available')];

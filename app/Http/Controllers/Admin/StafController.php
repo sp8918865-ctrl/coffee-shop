@@ -15,8 +15,13 @@ class StafController extends Controller
     public function index(): View
     {
         $stafs = User::orderBy('name')->get();
+        $roles = [
+            'barista' => 'Barista',
+            'cashier' => 'Kasir',
+            'admin' => 'Admin',
+        ];
 
-        return view('admin.data.staf', compact('stafs'));
+        return view('admin.data.staf', compact('stafs', 'roles'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -25,8 +30,10 @@ class StafController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
+            'role' => ['nullable', Rule::in(['barista', 'cashier', 'admin'])],
         ]);
 
+        $data['role'] = $data['role'] ?? 'barista';
         $data['password_hash'] = Hash::make($data['password']);
         unset($data['password']);
         User::create($data);
@@ -40,6 +47,12 @@ class StafController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->user_id, 'user_id')],
             'password' => ['nullable', 'string', 'min:8'],
+            'role' => [
+                'sometimes',
+                Rule::in($user->role === 'owner'
+                    ? ['barista', 'cashier', 'admin', 'owner']
+                    : ['barista', 'cashier', 'admin']),
+            ],
         ]);
 
         if (filled($data['password'] ?? null)) {
