@@ -49,7 +49,7 @@
         @if ($errors->any())
             <div role="alert" class="mt-3 rounded-xl border border-rose-400/20 bg-rose-400/[0.08] p-3 text-xs text-rose-200">Periksa kembali: {{ $errors->first() }}</div>
         @endif
-        <form method="POST" action="{{ route('checkout.place') }}" class="mt-4 space-y-4">
+        <form id="checkout-form" method="POST" action="{{ route('checkout.place') }}" data-total="{{ $total }}" class="mt-4 space-y-4">
             @csrf
             @php($defaultOrderType = $tables->isNotEmpty() ? 'dine_in' : 'take_away')
             <div>
@@ -101,6 +101,14 @@
                 @error('payment_method')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
             </fieldset>
 
+            <div id="cash-payment-fields" @if (old('payment_method', 'qris') !== 'cash') hidden @endif class="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-3">
+                <label for="cash_received" class="text-[10px] font-semibold text-slate-300">Nominal uang tunai yang disiapkan (Rp)</label>
+                <input id="cash_received" name="cash_received" type="number" min="{{ ceil($total) }}" max="9999999999" step="1" inputmode="numeric" value="{{ old('cash_received') }}" placeholder="{{ number_format(ceil($total), 0, ',', '.') }}" class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#101319] px-3 py-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-300 focus:outline-none">
+                @error('cash_received')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                <p class="mt-2 text-[10px] text-slate-400">Perkiraan kembalian: <strong id="cash-change-preview" class="text-amber-300">Rp 0</strong></p>
+                <p class="mt-1 text-[9px] leading-relaxed text-slate-500">Pembayaran tunai tetap menunggu konfirmasi staf kedai. Nominal dan kembalian di atas dicantumkan pada bon pesanan.</p>
+            </div>
+
             <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-950/20 transition hover:bg-amber-200">
                 Buat pesanan <i data-lucide="arrow-right" class="h-4 w-4"></i><span class="ml-1">· Rp {{ number_format($total, 0, ',', '.') }}</span>
             </button>
@@ -111,6 +119,28 @@
 
 @push('scripts')
 <script>
+    const checkoutForm = document.getElementById('checkout-form');
+    const cashFields = document.getElementById('cash-payment-fields');
+    const cashInput = document.getElementById('cash_received');
+    const cashChangePreview = document.getElementById('cash-change-preview');
+    const orderTotal = Number(checkoutForm.dataset.total);
+
+    function formatRupiah(amount) {
+        return 'Rp ' + new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(amount);
+    }
+
+    function syncCashPayment() {
+        const isCash = document.querySelector('input[name="payment_method"]:checked')?.value === 'cash';
+        cashFields.hidden = !isCash;
+        cashInput.required = isCash;
+        cashInput.min = Math.ceil(orderTotal);
+
+        const cashReceived = Number(cashInput.value);
+        cashChangePreview.textContent = formatRupiah(
+            Number.isFinite(cashReceived) ? Math.max(0, cashReceived - orderTotal) : 0
+        );
+    }
+
     const tableField = document.getElementById('table-field');
     const tableInput = document.getElementById('table_id');
     function syncOrderType() {
@@ -119,6 +149,9 @@
         tableInput.required = dineIn;
     }
     document.querySelectorAll('input[name="order_type"]').forEach(input => input.addEventListener('change', syncOrderType));
+    document.querySelectorAll('input[name="payment_method"]').forEach(input => input.addEventListener('change', syncCashPayment));
+    cashInput.addEventListener('input', syncCashPayment);
     syncOrderType();
+    syncCashPayment();
 </script>
 @endpush

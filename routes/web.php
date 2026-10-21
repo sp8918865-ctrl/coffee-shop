@@ -12,18 +12,36 @@ use App\Http\Controllers\PublicOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
-Route::get('/', [CatalogController::class, 'index'])->name('catalog.index');
-Route::post('/cart/items/{product}', [PublicOrderController::class, 'addToCart'])->whereNumber('product')->name('cart.add');
-Route::patch('/cart/items/{product}', [PublicOrderController::class, 'updateCart'])->whereNumber('product')->name('cart.update');
-Route::delete('/cart/items/{product}', [PublicOrderController::class, 'removeFromCart'])->whereNumber('product')->name('cart.remove');
-Route::get('/checkout', [PublicOrderController::class, 'checkout'])->name('checkout');
-Route::post('/checkout', [PublicOrderController::class, 'placeOrder'])->middleware('throttle:10,1')->name('checkout.place');
-Route::get('/orders/track/{token}', [PublicOrderController::class, 'track'])
-    ->where('token', '[A-Za-z0-9]{64}')
-    ->name('orders.track');
-Route::get('/orders', [PublicOrderController::class, 'orders'])->name('orders.index');
+Route::get('/menu/qr-entry', function (Request $request) {
+    $request->session()->put('customer_qr_access', true);
+    $request->session()->regenerate();
+
+    return redirect()->route('catalog.index');
+})->middleware('signed:relative')->name('customer.qr.enter');
+
+Route::get('/', function (Request $request) {
+    $user = $request->user();
+
+    return redirect()->route(
+        in_array($user?->role, ['admin', 'owner', 'barista'], true) ? 'admin.dashboard' : 'login'
+    );
+});
+
+Route::middleware('customer.qr')->group(function () {
+    Route::get('/menu', [CatalogController::class, 'index'])->name('catalog.index');
+    Route::post('/cart/items/{product}', [PublicOrderController::class, 'addToCart'])->whereNumber('product')->name('cart.add');
+    Route::patch('/cart/items/{product}', [PublicOrderController::class, 'updateCart'])->whereNumber('product')->name('cart.update');
+    Route::delete('/cart/items/{product}', [PublicOrderController::class, 'removeFromCart'])->whereNumber('product')->name('cart.remove');
+    Route::get('/checkout', [PublicOrderController::class, 'checkout'])->name('checkout');
+    Route::post('/checkout', [PublicOrderController::class, 'placeOrder'])->middleware('throttle:10,1')->name('checkout.place');
+    Route::get('/orders/track/{token}', [PublicOrderController::class, 'track'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('orders.track');
+    Route::get('/orders', [PublicOrderController::class, 'orders'])->name('orders.index');
+});
 
 Route::get('/login', function () {
     return view('login.login');
@@ -48,7 +66,7 @@ Route::post('/login/demo', function (Request $request) {
     Auth::login($demoUser);
     $request->session()->regenerate();
 
-    return redirect()->intended(route('admin.dashboard'));
+    return redirect()->route('admin.dashboard');
 })->middleware('throttle:5,1')->name('login.demo');
 
 Route::post('/login', function (Request $request) {
@@ -63,12 +81,19 @@ Route::post('/login', function (Request $request) {
 
     $request->session()->regenerate();
 
-    if (! in_array($request->user()->role, ['admin', 'owner'], true)) {
-        return redirect()->route('catalog.index')
-            ->with('success', 'Anda berhasil masuk. Dashboard tersedia untuk admin atau owner.');
+    if (in_array($request->user()->role, ['admin', 'owner'], true)) {
+        return redirect()->route('admin.dashboard');
     }
 
-    return redirect()->intended(route('admin.dashboard'));
+    if ($request->user()->role === 'barista') {
+        return redirect()->route('admin.dashboard');
+    }
+
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return redirect()->route('login')
+        ->with('status', 'Akun ini belum memiliki akses ke panel admin atau barista.');
 })->name('login.submit');
 
 Route::post('/logout', function (Request $request) {
@@ -79,7 +104,7 @@ Route::post('/logout', function (Request $request) {
     return redirect()->route('login');
 })->middleware('auth')->name('logout');
 
-Route::middleware(['auth', 'manager', 'desktop'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin.panel', 'desktop'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
     Route::get('/qr-menu', [PublicQrController::class, 'index'])->name('qr-menu');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -98,12 +123,15 @@ Route::middleware(['auth', 'manager', 'desktop'])->prefix('admin')->name('admin.
     Route::post('/pesanan', [PesananController::class, 'store'])->name('pesanan.store');
     Route::patch('/pesanan/{order}/status', [PesananController::class, 'updateStatus'])->name('pesanan.status');
     Route::delete('/pesanan/{order}', [PesananController::class, 'destroy'])->name('pesanan.destroy');
-    Route::get('/staf', [StafController::class, 'index'])->name('staf');
-    Route::post('/staf', [StafController::class, 'store'])->name('staf.store');
-    Route::put('/staf/{user}', [StafController::class, 'update'])->name('staf.update');
-    Route::delete('/staf/{user}', [StafController::class, 'destroy'])->name('staf.destroy');
     Route::get('/bahan', [BahanController::class, 'index'])->name('bahan');
     Route::post('/bahan', [BahanController::class, 'store'])->name('bahan.store');
     Route::put('/bahan/{ingredient}', [BahanController::class, 'update'])->name('bahan.update');
     Route::delete('/bahan/{ingredient}', [BahanController::class, 'destroy'])->name('bahan.destroy');
+
+    Route::middleware('manager')->group(function (): void {
+        Route::get('/staf', [StafController::class, 'index'])->name('staf');
+        Route::post('/staf', [StafController::class, 'store'])->name('staf.store');
+        Route::put('/staf/{user}', [StafController::class, 'update'])->name('staf.update');
+        Route::delete('/staf/{user}', [StafController::class, 'destroy'])->name('staf.destroy');
+    });
 });

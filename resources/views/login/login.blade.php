@@ -16,8 +16,18 @@
             <p class="text-slate-400 text-sm">Console POS System</p>
         </div>
 
+        <div class="mb-5 grid gap-2 rounded-xl border border-slate-700 bg-slate-900/60 p-3 text-xs">
+            <p class="font-semibold text-amber-300">Akses sesuai peran akun</p>
+            <p class="text-slate-300"><strong class="text-white">Admin:</strong> dashboard, menu, stok, meja, staf, dan pesanan.</p>
+            <p class="text-slate-300"><strong class="text-white">Barista:</strong> pesanan masuk dan pembaruan proses racikan.</p>
+            <p class="text-slate-500">Setelah login, Anda otomatis masuk ke panel sesuai peran akun.</p>
+        </div>
+
         @if ($errors->any())
             <div role="alert" class="mb-5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{{ $errors->first() }}</div>
+        @endif
+        @if (session('status'))
+            <div role="status" class="mb-5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">{{ session('status') }}</div>
         @endif
         <form action="{{ route('login.submit') }}" method="POST" class="space-y-5">
             @csrf

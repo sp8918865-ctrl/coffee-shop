@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
-use App\Models\Product;
 use App\Models\DiningTable;
+use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -22,11 +22,19 @@ class PublicOrderController extends Controller
 
     public function addToCart(Request $request, Product $product): RedirectResponse
     {
-        abort_unless($product->is_available, 404);
-
         $data = $request->validate(['quantity' => ['nullable', 'integer', 'min:1', 'max:20']]);
+        $product = Product::availableForSale()->whereKey($product->product_id)->first();
+        if (! $product) {
+            return back()->with('error', 'Menu sedang habis atau tidak tersedia.');
+        }
+
         $cart = $request->session()->get(self::CART_KEY, []);
-        $cart[$product->product_id] = min(20, ($cart[$product->product_id] ?? 0) + ($data['quantity'] ?? 1));
+        $quantity = ($cart[$product->product_id] ?? 0) + ($data['quantity'] ?? 1);
+        if ($quantity > min(20, $product->stok)) {
+            return back()->with('error', 'Stok '.$product->name.' hanya tersisa '.$product->stok.'.');
+        }
+
+        $cart[$product->product_id] = $quantity;
         $request->session()->put(self::CART_KEY, $cart);
 
         return back()->with('success', $product->name.' ditambahkan ke keranjang.');
@@ -37,7 +45,14 @@ class PublicOrderController extends Controller
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:20']]);
         $cart = $request->session()->get(self::CART_KEY, []);
         abort_unless(isset($cart[$product]), 404);
-        abort_unless(Product::whereKey($product)->where('is_available', true)->exists(), 404);
+        $availableProduct = Product::availableForSale()->whereKey($product)->first();
+        if (! $availableProduct) {
+            return back()->with('error', 'Menu sedang habis atau tidak tersedia.');
+        }
+        if ($data['quantity'] > min(20, $availableProduct->stok)) {
+            return back()->with('error', 'Stok '.$availableProduct->name.' hanya tersisa '.$availableProduct->stok.'.');
+        }
+
         $cart[$product] = $data['quantity'];
         $request->session()->put(self::CART_KEY, $cart);
 
@@ -83,6 +98,7 @@ class PublicOrderController extends Controller
                 Rule::exists('tables', 'table_id')->where('status', 'available'),
             ],
             'payment_method' => ['required', 'in:qris,cash'],
+            'cash_received' => ['required_if:payment_method,cash', 'nullable', 'integer', 'min:0', 'max:9999999999'],
         ]);
         $items = $this->cartProducts($request);
         $cart = $request->session()->get(self::CART_KEY, []);
@@ -93,7 +109,15 @@ class PublicOrderController extends Controller
             return redirect()->route('catalog.index')->with('error', 'Keranjang Anda kosong atau menu sudah tidak tersedia.');
         }
 
-        $order = DB::transaction(function () use ($data, $items): Order {
+        $total = $items->sum(fn (Product $product) => $product->price * $product->cart_quantity);
+        $cashReceived = isset($data['cash_received']) ? (int) $data['cash_received'] : null;
+        if ($data['payment_method'] === 'cash' && ($cashReceived === null || $cashReceived < $total)) {
+            throw ValidationException::withMessages([
+                'cash_received' => 'Uang yang disiapkan harus cukup untuk membayar total pesanan.',
+            ]);
+        }
+
+        $order = DB::transaction(function () use ($data, $items, $total, $cashReceived): Order {
             $table = null;
             if ($data['order_type'] === 'dine_in') {
                 $table = DiningTable::whereKey($data['table_id'])
@@ -108,7 +132,6 @@ class PublicOrderController extends Controller
                 }
             }
 
-            $total = $items->sum(fn (Product $product) => $product->price * $product->cart_quantity);
             $order = Order::create([
                 'order_number' => 'ORD-'.now()->format('ymdHis').'-'.Str::upper(Str::random(8)),
                 'public_tracking_token' => Str::random(64),
@@ -123,6 +146,12 @@ class PublicOrderController extends Controller
             ]);
 
             foreach ($items as $product) {
+                if (! $product->deductStock($product->cart_quantity)) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Stok '.$product->name.' sudah habis atau tidak mencukupi. Silakan perbarui keranjang Anda.',
+                    ]);
+                }
+
                 $lineTotal = $product->price * $product->cart_quantity;
                 OrderItem::create([
                     'order_id' => $order->order_id,
@@ -139,6 +168,8 @@ class PublicOrderController extends Controller
                 'payment_method' => $data['payment_method'],
                 'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
                 'amount' => $total,
+                'cash_received' => $data['payment_method'] === 'cash' ? $cashReceived : null,
+                'cash_change' => $data['payment_method'] === 'cash' ? $cashReceived - $total : null,
                 'payment_status' => 'pending',
             ]);
 
@@ -183,8 +214,8 @@ class PublicOrderController extends Controller
             return collect();
         }
 
-        return Product::whereIn('product_id', array_keys($cart))
-            ->where('is_available', true)
+        return Product::availableForSale()
+            ->whereIn('product_id', array_keys($cart))
             ->orderBy('name')
             ->get()
             ->each(function (Product $product) use ($cart): void {

@@ -25,8 +25,10 @@
                         ['label' => 'Stok Bahan', 'route' => 'admin.bahan', 'icon' => 'shopping-bag'],
                         ['label' => 'Pesanan', 'route' => 'admin.pesanan', 'icon' => 'receipt'],
                         ['label' => 'QR Menu Publik', 'route' => 'admin.qr-menu', 'icon' => 'qr-code'],
-                        ['label' => 'Data Barista & Staf', 'route' => 'admin.staf', 'icon' => 'users'],
                     ];
+                    if (auth()->user()?->role !== 'barista') {
+                        $adminMenu[] = ['label' => 'Data Barista & Staf', 'route' => 'admin.staf', 'icon' => 'users'];
+                    }
                 @endphp
                 <nav class="flex gap-1 overflow-x-auto text-xs font-medium md:flex-col">
                     @foreach ($adminMenu as $menuItem)
@@ -54,7 +56,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <span class="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[10px] text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>Database aktif</span>
-                    <div class="flex items-center gap-2 border-l border-[#1e293b] pl-3"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-400"><i data-lucide="user" class="h-4 w-4"></i></span><span class="text-xs"><strong class="block text-white">{{ auth()->user()?->name ?? 'Admin Lokal' }}</strong><span class="text-[10px] text-slate-400">Administrator</span></span></div>
+                    <div class="flex items-center gap-2 border-l border-[#1e293b] pl-3"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-400"><i data-lucide="user" class="h-4 w-4"></i></span><span class="text-xs"><strong class="block text-white">{{ auth()->user()?->name ?? 'Admin Lokal' }}</strong><span class="text-[10px] text-slate-400">{{ auth()->user()?->role === 'barista' ? 'Barista' : (auth()->user()?->role === 'owner' ? 'Owner' : 'Administrator') }}</span></span></div>
                 </div>
             </header>
             @if (session('success'))

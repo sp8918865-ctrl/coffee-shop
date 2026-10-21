@@ -26,11 +26,11 @@
                         <i data-lucide="coffee" class="hidden h-5 w-5 text-amber-400"></i>
                     </span>
                     <span class="min-w-0">
-                        <span class="block truncate text-[9px] font-bold uppercase tracking-[.22em] text-amber-400">Roastery & Slow Bar</span>
+                        <span class="block truncate text-[9px] font-bold uppercase tracking-[.22em] text-amber-400">Menu Pelanggan · QR</span>
                         <span class="block truncate text-sm font-extrabold text-white">Warung Luwak</span>
                     </span>
                 </a>
-                <a href="{{ route('checkout') }}" class="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#1b1e23] text-amber-300" aria-label="Buka keranjang">
+                <a href="{{ route('checkout') }}" class="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/10 bg-[#1b1e23] text-amber-300" aria-label="Buka keranjang">
                     <i data-lucide="shopping-bag" class="h-4 w-4"></i>
                     @if (collect(session('public_order_cart', []))->sum() > 0)
                         <span class="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-amber-400 px-1 text-[9px] font-black text-slate-950">{{ collect(session('public_order_cart', []))->sum() }}</span>

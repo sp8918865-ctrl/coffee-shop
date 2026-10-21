@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\DiningTable;
 use App\Models\Category;
+use App\Models\DiningTable;
+use App\Models\Ingredient;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -33,6 +34,14 @@ class ErdRelationshipsTest extends TestCase
             'price' => 25000,
             'is_available' => true,
         ]);
+        $ingredient = Ingredient::create([
+            'name' => 'Espresso',
+            'quantity' => 5,
+            'unit' => 'kg',
+            'minimum_quantity' => 1,
+            'status' => 'available',
+        ]);
+        $product->ingredients()->attach($ingredient->id, ['quantity_required' => 0.018]);
         $order = Order::create([
             'order_number' => 'ORD-ERD-001',
             'status' => 'new',
@@ -80,5 +89,7 @@ class ErdRelationshipsTest extends TestCase
         $this->assertSame($order->order_id, $payment->order->order_id);
         $this->assertSame($user->user_id, $payment->processedBy->user_id);
         $this->assertSame($payment->payment_id, $user->processedPayments->first()->payment_id);
+        $this->assertSame($ingredient->id, $product->ingredients->first()->id);
+        $this->assertEquals(0.018, $ingredient->products->first()->pivot->quantity_required);
     }
 }

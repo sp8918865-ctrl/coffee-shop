@@ -3,19 +3,21 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_customer_home_requires_a_valid_qr_scan(): void
     {
-        $response = $this->get('/');
+        $this->get('/')->assertRedirect(route('login'));
+        $this->get(route('catalog.index'))->assertForbidden();
 
-        $response->assertStatus(200);
+        $this->get(URL::signedRoute('customer.qr.enter', absolute: false))
+            ->assertRedirect(route('catalog.index'));
+
+        $this->get(route('catalog.index'))->assertOk();
     }
 }

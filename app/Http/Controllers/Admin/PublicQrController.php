@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 
 class PublicQrController extends Controller
@@ -15,8 +16,12 @@ class PublicQrController extends Controller
             '/'
         );
 
+        $qrEntryPath = URL::signedRoute('customer.qr.enter', absolute: false);
+        $apiQrEntryPath = URL::signedRoute('api.v1.customer.qr-access', absolute: false);
+
         return view('admin.data.qr', [
-            'publicUrl' => $publicBaseUrl.route('catalog.index', [], false),
+            'publicUrl' => $publicBaseUrl.$qrEntryPath,
+            'apiUrl' => $publicBaseUrl.$apiQrEntryPath,
         ]);
     }
 }

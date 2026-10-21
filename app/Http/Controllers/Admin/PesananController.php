@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DiningTable;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\DiningTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +22,7 @@ class PesananController extends Controller
         $pesananBrewing = Order::with('items')->where('order_status', 'in_progress')->latest()->get();
         $pesananReady = Order::with('items')->where('order_status', 'ready')->latest()->get();
         $pesananSelesai = Order::with('items')->where('order_status', 'completed')->whereDate('created_at', today())->latest()->get();
-        $products = Product::where('is_available', true)->orderBy('name')->get();
+        $products = Product::availableForSale()->orderBy('name')->get();
         $tables = DiningTable::where('status', 'available')->orderBy('table_number')->get();
 
         return view('admin.data.pesanan', compact(
@@ -45,9 +45,17 @@ class PesananController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $product = Product::whereKey($data['product_id'])->where('is_available', true)->firstOrFail();
+        DB::transaction(function () use ($data): void {
+            $product = Product::availableForSale()
+                ->whereKey($data['product_id'])
+                ->lockForUpdate()
+                ->first();
+            if (! $product || ! $product->deductStock($data['quantity'])) {
+                throw ValidationException::withMessages([
+                    'product_id' => 'Stok menu sudah habis atau tidak mencukupi.',
+                ]);
+            }
 
-        DB::transaction(function () use ($data, $product): void {
             $table = null;
             if ($data['order_type'] === 'dine_in') {
                 $table = DiningTable::whereKey($data['table_id'])

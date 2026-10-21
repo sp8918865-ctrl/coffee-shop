@@ -65,11 +65,12 @@
                         <div class="flex min-w-0 flex-1 flex-col">
                             <h3 class="text-xs font-bold text-white">{{ $product->name }}</h3>
                             <p class="mt-1 line-clamp-2 text-[10px] leading-relaxed text-slate-400">{{ $product->description ?: 'Racikan pilihan barista Warung Luwak.' }}</p>
+                            <p class="mt-1 text-[10px] text-slate-500">Sisa stok: {{ $product->stok }}</p>
                             <div class="mt-auto flex items-end justify-between gap-2 pt-2">
                                 <span class="text-xs font-extrabold text-amber-300">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
                                 <form method="POST" action="{{ route('cart.add', $product->product_id) }}">
                                     @csrf
-                                    <button aria-label="Tambah {{ $product->name }} ke keranjang" class="grid h-8 w-8 place-items-center rounded-lg bg-amber-300 text-slate-950 transition hover:bg-amber-200">
+                                    <button aria-label="Tambah {{ $product->name }} ke keranjang" class="grid h-11 w-11 place-items-center rounded-lg bg-amber-300 text-slate-950 transition hover:bg-amber-200">
                                         <i data-lucide="plus" class="h-4 w-4"></i>
                                     </button>
                                 </form>
@@ -97,9 +98,10 @@
                         <div class="flex min-w-0 flex-1 flex-col">
                             <h3 class="text-xs font-bold text-white">{{ $product->name }}</h3>
                             <p class="mt-1 line-clamp-2 text-[10px] text-slate-400">{{ $product->description ?: 'Racikan pilihan barista Warung Luwak.' }}</p>
+                            <p class="mt-1 text-[10px] text-slate-500">Sisa stok: {{ $product->stok }}</p>
                             <div class="mt-auto flex items-end justify-between pt-2">
                                 <span class="text-xs font-extrabold text-amber-300">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
-                                <form method="POST" action="{{ route('cart.add', $product->product_id) }}">@csrf<button aria-label="Tambah {{ $product->name }} ke keranjang" class="grid h-8 w-8 place-items-center rounded-lg bg-amber-300 text-slate-950"><i data-lucide="plus" class="h-4 w-4"></i></button></form>
+                                <form method="POST" action="{{ route('cart.add', $product->product_id) }}">@csrf<button aria-label="Tambah {{ $product->name }} ke keranjang" class="grid h-11 w-11 place-items-center rounded-lg bg-amber-300 text-slate-950"><i data-lucide="plus" class="h-4 w-4"></i></button></form>
                             </div>
                         </div>
                     </article>

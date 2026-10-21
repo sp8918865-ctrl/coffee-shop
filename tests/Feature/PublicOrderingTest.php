@@ -6,7 +6,9 @@ use App\Models\Category;
 use App\Models\DiningTable;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class PublicOrderingTest extends TestCase
@@ -15,6 +17,7 @@ class PublicOrderingTest extends TestCase
 
     public function test_guest_can_browse_menu_add_items_and_view_checkout(): void
     {
+        $this->scanQr();
         $product = $this->product();
 
         $this->get(route('catalog.index'))
@@ -41,6 +44,7 @@ class PublicOrderingTest extends TestCase
 
     public function test_guest_checkout_persists_order_items_and_unpaid_demo_qris_with_secret_tracking_url(): void
     {
+        $this->scanQr();
         $product = $this->product();
         $table = DiningTable::create(['table_number' => '07', 'capacity' => 2, 'status' => 'available']);
         $this->withSession(['public_order_cart' => [$product->product_id => 2]]);
@@ -72,6 +76,10 @@ class PublicOrderingTest extends TestCase
             'quantity' => 2,
             'subtotal' => 36000,
         ]);
+        $this->assertDatabaseHas('products', [
+            'product_id' => $product->product_id,
+            'stok' => 18,
+        ]);
         $this->assertDatabaseHas('payments', [
             'order_id' => $order->order_id,
             'payment_method' => 'qris',
@@ -88,6 +96,8 @@ class PublicOrderingTest extends TestCase
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertSee('name="referrer" content="no-referrer"', false)
             ->assertSee('QRIS SIMULASI')
+            ->assertSee('Bon pembayaran')
+            ->assertSee('Cetak bon')
             ->assertSee('bukan kode QR pembayaran')
             ->assertSee('Belum dibayar')
             ->assertSee('Pesanan diterima');
@@ -104,8 +114,10 @@ class PublicOrderingTest extends TestCase
             ->assertSee('Siap diambil');
     }
 
-    public function test_customer_orders_page_is_public_and_prompts_guests_to_browse_menu(): void
+    public function test_customer_orders_page_is_available_after_qr_scan_and_prompts_when_empty(): void
     {
+        $this->scanQr();
+
         $this->get(route('orders.index'))
             ->assertOk()
             ->assertSee('Belum ada pesanan')
@@ -116,6 +128,7 @@ class PublicOrderingTest extends TestCase
 
     public function test_cash_demo_records_unpaid_takeaway_order_and_validates_checkout(): void
     {
+        $this->scanQr();
         $product = $this->product();
         $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
 
@@ -123,6 +136,7 @@ class PublicOrderingTest extends TestCase
             'customer_name' => 'Budi',
             'order_type' => 'take_away',
             'payment_method' => 'cash',
+            'cash_received' => 20000,
         ])->assertRedirect();
 
         $order = Order::with('payments')->firstOrFail();
@@ -130,6 +144,16 @@ class PublicOrderingTest extends TestCase
         $this->assertSame('cash', $order->payments->first()->payment_method);
         $this->assertSame('pending', $order->payments->first()->payment_status);
         $this->assertNull($order->payments->first()->paid_at);
+        $this->assertSame(20000.0, (float) $order->payments->first()->cash_received);
+        $this->assertSame(2000.0, (float) $order->payments->first()->cash_change);
+        $this->get(route('orders.track', $order->public_tracking_token))
+            ->assertOk()
+            ->assertSee('Bon pembayaran')
+            ->assertSee('Uang disiapkan')
+            ->assertSee('Rp 20.000')
+            ->assertSee('Perkiraan kembalian')
+            ->assertSee('Rp 2.000')
+            ->assertSee('menunggu konfirmasi staf');
 
         $this->withSession(['public_order_cart' => [$product->product_id => 1]])
             ->from(route('checkout'))
@@ -143,8 +167,29 @@ class PublicOrderingTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
     }
 
+    public function test_cash_checkout_rejects_payment_less_than_the_order_total(): void
+    {
+        $this->scanQr();
+        $product = $this->product();
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]])
+            ->from(route('checkout'))
+            ->post(route('checkout.place'), [
+                'customer_name' => 'Budi',
+                'order_type' => 'take_away',
+                'payment_method' => 'cash',
+                'cash_received' => 10000,
+            ])
+            ->assertRedirect(route('checkout'))
+            ->assertSessionHasErrors('cash_received');
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('payments', 0);
+        $this->assertDatabaseHas('products', ['product_id' => $product->product_id, 'stok' => 20]);
+    }
+
     public function test_order_is_not_retrievable_by_sequential_id_or_another_token(): void
     {
+        $this->scanQr();
         $order = Order::create([
             'order_number' => 'ORD-TEST-001',
             'public_tracking_token' => str_repeat('a', 64),
@@ -163,6 +208,7 @@ class PublicOrderingTest extends TestCase
 
     public function test_unavailable_cart_items_cannot_be_silently_dropped_at_checkout(): void
     {
+        $this->scanQr();
         $product = $this->product();
         $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
         $product->update(['is_available' => false]);
@@ -173,14 +219,71 @@ class PublicOrderingTest extends TestCase
         $this->post(route('checkout.place'), [
             'customer_name' => 'Ayu',
             'order_type' => 'take_away',
-            'payment_method' => 'cash',
+            'payment_method' => 'qris',
         ])->assertRedirect(route('catalog.index'));
 
         $this->assertDatabaseCount('orders', 0);
     }
 
+    public function test_sold_out_products_cannot_be_ordered_and_become_available_after_admin_restock(): void
+    {
+        $this->scanQr();
+        $product = $this->product();
+        $product->update(['stok' => 1]);
+
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]])
+            ->post(route('checkout.place'), [
+                'customer_name' => 'Ayu',
+                'order_type' => 'take_away',
+                'payment_method' => 'cash',
+                'cash_received' => 18000,
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('products', ['product_id' => $product->product_id, 'stok' => 0]);
+        $this->get(route('catalog.index'))->assertDontSee('Kopi Susu');
+        $this->post(route('cart.add', $product->product_id))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+        $this->assertDatabaseCount('orders', 1);
+
+        $this->actingAs(User::factory()->create())
+            ->put(route('admin.menu.update', $product), [
+                'name' => $product->name,
+                'category_id' => $product->category_id,
+                'stok' => 3,
+                'price' => $product->price,
+                'is_available' => true,
+            ])->assertRedirect(route('admin.menu'));
+
+        $this->assertDatabaseHas('products', ['product_id' => $product->product_id, 'stok' => 3]);
+        $this->get(route('catalog.index'))->assertSee('Kopi Susu')->assertSee('Sisa stok: 3');
+        $this->post(route('cart.add', $product->product_id))
+            ->assertRedirect()
+            ->assertSessionHas('public_order_cart', [$product->product_id => 1]);
+    }
+
+    public function test_checkout_rejects_cart_quantities_above_available_stock(): void
+    {
+        $this->scanQr();
+        $product = $this->product();
+        $product->update(['stok' => 1]);
+        $this->withSession(['public_order_cart' => [$product->product_id => 2]])
+            ->from(route('checkout'))
+            ->post(route('checkout.place'), [
+                'customer_name' => 'Ayu',
+                'order_type' => 'take_away',
+                'payment_method' => 'qris',
+            ])
+            ->assertRedirect(route('checkout'))
+            ->assertSessionHasErrors('items');
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseHas('products', ['product_id' => $product->product_id, 'stok' => 1]);
+    }
+
     public function test_customer_can_only_select_an_available_admin_configured_table(): void
     {
+        $this->scanQr();
         $product = $this->product();
         $availableTable = DiningTable::create([
             'table_number' => '01',
@@ -206,6 +309,7 @@ class PublicOrderingTest extends TestCase
                 'order_type' => 'dine_in',
                 'table_id' => $reservedTable->table_id,
                 'payment_method' => 'cash',
+                'cash_received' => 18000,
             ])
             ->assertSessionHasErrors('table_id');
 
@@ -217,6 +321,7 @@ class PublicOrderingTest extends TestCase
                 'order_type' => 'dine_in',
                 'table_id' => $availableTable->table_id,
                 'payment_method' => 'cash',
+                'cash_received' => 18000,
             ])
             ->assertRedirect();
 
@@ -242,9 +347,15 @@ class PublicOrderingTest extends TestCase
         return Product::create([
             'category_id' => $category->category_id,
             'name' => 'Kopi Susu',
-            'sku' => 'KOPI-TEST',
+            'stok' => '20',
             'price' => 18000,
             'is_available' => true,
         ]);
+    }
+
+    private function scanQr(): void
+    {
+        $this->get(URL::signedRoute('customer.qr.enter', absolute: false))
+            ->assertRedirect(route('catalog.index'));
     }
 }

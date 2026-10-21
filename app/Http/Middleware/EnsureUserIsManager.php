@@ -10,10 +10,11 @@ class EnsureUserIsManager
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! in_array($request->user()?->role, ['admin', 'owner'], true)) {
-            return redirect()->route('catalog.index')
-                ->with('error', 'Halaman tersebut hanya dapat diakses admin atau owner.');
-        }
+        abort_unless(
+            in_array($request->user()?->role, ['admin', 'owner'], true),
+            403,
+            'Halaman tersebut hanya dapat diakses admin atau owner.'
+        );
 
         return $next($request);
     }

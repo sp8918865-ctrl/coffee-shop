@@ -10,13 +10,13 @@ class CatalogController extends Controller
 {
     public function index(): View
     {
-        $categories = Category::whereHas('products', fn ($query) => $query->where('is_available', true))
-            ->with(['products' => fn ($query) => $query->where('is_available', true)->orderBy('name')])
+        $categories = Category::whereHas('products', fn ($query) => $query->availableForSale())
+            ->with(['products' => fn ($query) => $query->availableForSale()->orderBy('name')])
             ->orderBy('name')
             ->get();
 
-        $uncategorizedProducts = Product::whereNull('category_id')
-            ->where('is_available', true)
+        $uncategorizedProducts = Product::availableForSale()
+            ->whereNull('category_id')
             ->orderBy('name')
             ->get();
 

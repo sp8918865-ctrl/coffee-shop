@@ -1,75 +1,74 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Coffee Shop
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi kasir dan katalog menu berbasis Laravel.
 
-## About Laravel
+## Persyaratan
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2 atau lebih baru dengan ekstensi `pdo_sqlite`, `mbstring`, dan `openssl`
+- Composer
+- Node.js dan npm
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Untuk Laragon, pastikan ekstensi `pdo_sqlite` aktif pada versi PHP yang digunakan.
+Setup awal memakai SQLite; MySQL tidak perlu dipasang untuk menjalankan aplikasi
+secara lokal.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Menjalankan setelah clone
 
-## Learning Laravel
+Jalankan perintah dari folder proyek. `.env` dan database lokal tidak disimpan di
+Git, jadi setiap laptop membuat konfigurasinya sendiri.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Windows (PowerShell / Laragon)
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```powershell
+Copy-Item .env.example .env
+if (-not (Test-Path database\database.sqlite)) {
+    New-Item database\database.sqlite -ItemType File | Out-Null
+}
+composer install
+php artisan key:generate
+php artisan migrate --seed
+npm ci
+npm run build
+php artisan serve
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Buka `http://localhost:8000`.
 
-## Laravel Sponsors
+### macOS / Linux
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```sh
+cp .env.example .env
+touch database/database.sqlite
+composer install
+php artisan key:generate
+php artisan migrate --seed
+npm ci
+npm run build
+php artisan serve
+```
 
-### Premium Partners
+Buka `http://localhost:8000`.
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Akun administrator
 
-## Contributing
+Untuk membuat akun administrator, isi `ADMIN_NAME`, `ADMIN_EMAIL`, dan
+`ADMIN_PASSWORD` di `.env` sebelum menjalankan `php artisan migrate --seed`.
+Jika seeder sudah pernah dijalankan, jalankan `php artisan db:seed` setelah
+mengubah nilai tersebut.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Dalam `APP_ENV=local`, login menerima input apa pun dan halaman admin terbuka
+untuk pengembangan. Jangan gunakan mode lokal atau `APP_DEBUG=true` pada server
+publik. Untuk penggunaan produksi, siapkan server dan database sendiri serta
+atur `.env` produksi secara aman.
 
-## Code of Conduct
+## Database dan data
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Setiap laptop memiliki database SQLite sendiri di `database/database.sqlite`.
+File itu tidak disalin dari Git dan data tidak tersinkron otomatis antar laptop.
+Jika ingin memindahkan data, buat dan pulihkan backup database secara terpisah.
+Untuk memakai MySQL, ubah `DB_CONNECTION`, host, port, nama database, dan
+kredensial di `.env` sesuai server MySQL yang tersedia.
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-## Warung Luwak Setup
-
-1. Configure `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in `.env` for your database.
-2. Set a private `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`. Do not commit `.env`.
-3. Run `php artisan key:generate`, `php artisan migrate`, and `php artisan db:seed`.
-4. Start the app with `php artisan serve` and sign in using the admin email and password configured above.
-
-The seeder creates or updates the initial administrator only when both admin environment variables are set. Admin CRUD pages require an authenticated account outside the local environment. In `APP_ENV=local`, login intentionally accepts any input and admin pages are open for development only; never deploy with `APP_ENV=local`.
+Jika memilih `SESSION_DRIVER=database` atau `CACHE_STORE=database`, tabel yang
+diperlukan akan dibuat oleh migrasi. Di produksi, jalankan scheduler Laravel
+setiap menit (`php artisan schedule:run`) untuk tugas terjadwal.

@@ -7,7 +7,6 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class MenuController extends Controller
@@ -19,17 +18,19 @@ class MenuController extends Controller
                 $search = $request->string('search')->toString();
                 $query->where(function ($query) use ($search): void {
                     $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('stok', 'like', "%{$search}%");
+                        ->orWhere('stok', 'like', "%{$search}%");
                 });
             })
             ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->input('category_id')))
-            ->when($request->boolean('unavailable'), fn ($query) => $query->where('is_available', false))
+            ->when($request->boolean('unavailable'), fn ($query) => $query->where(function ($query): void {
+                $query->where('is_available', false)->orWhere('stok', '<=', 0)->orWhereNull('stok');
+            }))
             ->orderBy('name')
             ->get();
         $categories = Category::withCount('products')->orderBy('name')->get();
         $totalProducts = Product::count();
-        $availableProducts = Product::where('is_available', true)->count();
-        $unavailableProducts = Product::where('is_available', false)->count();
+        $availableProducts = Product::availableForSale()->count();
+        $unavailableProducts = $totalProducts - $availableProducts;
 
         return view('admin.data.menu', compact(
             'products', 'categories', 'totalProducts', 'availableProducts', 'unavailableProducts'
@@ -80,7 +81,7 @@ class MenuController extends Controller
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['nullable', 'exists:categories,category_id'],
-            'stok' => ['nullable', 'integer', 'min:0'],
+            'stok' => ['required', 'integer', 'min:0'],
             'price' => ['required', 'numeric', 'min:0'],
             'is_available' => ['nullable', 'boolean'],
         ]) + ['is_available' => $request->boolean('is_available')];

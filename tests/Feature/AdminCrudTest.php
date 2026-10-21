@@ -219,6 +219,7 @@ class AdminCrudTest extends TestCase
         ]);
         $this->assertSame($user->user_id, $order->user_id);
         $this->assertDatabaseHas('order_items', ['order_id' => $order->order_id, 'product_name' => 'Espresso', 'quantity' => 2]);
+        $this->assertDatabaseHas('products', ['product_id' => $product->product_id, 'stok' => 6]);
 
         $this->patch(route('admin.pesanan.status', $order), ['status' => 'brewing'])->assertRedirect(route('admin.pesanan'));
         $this->assertDatabaseHas('orders', ['order_id' => $order->order_id, 'order_status' => 'in_progress']);
