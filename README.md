@@ -34,6 +34,18 @@ php artisan serve
 
 Buka `http://localhost:8000`.
 
+### Akses menu pelanggan dari ponsel
+
+Menu pelanggan dapat dibuka menggunakan kuota internet ponsel maupun Wi-Fi.
+Untuk penggunaan di luar jaringan lokal, aplikasi harus dipasang pada server
+yang dapat dijangkau dari internet dan `PUBLIC_MENU_URL` harus diisi dengan URL
+publiknya, misalnya `https://menu.contoh.id`. Setelah itu, QR menu yang dibuat
+di panel admin akan menggunakan URL tersebut.
+
+Saat pengembangan lokal, `PUBLIC_MENU_URL` dapat diisi dengan alamat IP komputer
+yang bisa dijangkau dari jaringan Wi-Fi yang sama. Alamat `localhost` tidak
+dapat dibuka dari ponsel.
+
 ### macOS / Linux
 
 ```sh
@@ -51,8 +63,10 @@ Buka `http://localhost:8000`.
 
 ## Akun administrator
 
-Untuk membuat akun administrator, isi `ADMIN_NAME`, `ADMIN_EMAIL`, dan
-`ADMIN_PASSWORD` di `.env` sebelum menjalankan `php artisan migrate --seed`.
+Untuk membuat akun administrator dan barista, isi `ADMIN_NAME`, `ADMIN_USERNAME`,
+`ADMIN_PASSWORD`, `BARISTA_NAME`, `BARISTA_USERNAME`, dan `BARISTA_PASSWORD` di
+`.env` sebelum menjalankan `php artisan migrate --seed`. Username admin dan
+barista harus berbeda.
 Jika seeder sudah pernah dijalankan, jalankan `php artisan db:seed` setelah
 mengubah nilai tersebut.
 

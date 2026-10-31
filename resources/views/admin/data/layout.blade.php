@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title') - Warung Luwak</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-[#0b0f17] text-slate-200 antialiased">
     <div class="min-h-screen md:flex">
@@ -70,6 +69,5 @@
             @yield('content')
         </main>
     </div>
-    <script>lucide.createIcons();</script>
 </body>
 </html>

@@ -13,15 +13,15 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'username' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $user = User::where('email', $credentials['email'])->first();
+        $user = User::where('username', $credentials['username'])->first();
         if (! $user || ! Hash::check($credentials['password'], $user->password_hash)
             || ! in_array($user->role, ['admin', 'owner'], true)) {
-            return response()->json(['message' => 'Email, kata sandi, atau hak akses tidak valid.'], 422);
+            return response()->json(['message' => 'Username, kata sandi, atau hak akses tidak valid.'], 422);
         }
 
         $expiresAt = now()->addDays(30);
@@ -54,7 +54,7 @@ class AuthController extends Controller
         return [
             'id' => $user->user_id,
             'name' => $user->name,
-            'email' => $user->email,
+            'username' => $user->username,
             'role' => $user->role,
         ];
     }

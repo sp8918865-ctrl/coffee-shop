@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 
@@ -22,6 +24,21 @@ class PublicQrController extends Controller
         return view('admin.data.qr', [
             'publicUrl' => $publicBaseUrl.$qrEntryPath,
             'apiUrl' => $publicBaseUrl.$apiQrEntryPath,
+            'isEnabled' => AppSetting::isPublicQrEnabled(),
         ]);
+    }
+
+    public function toggle(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'enabled' => ['required', 'boolean'],
+        ]);
+
+        AppSetting::setPublicQrEnabled((bool) $data['enabled']);
+
+        return redirect()->route('admin.qr-menu')->with(
+            'success',
+            $data['enabled'] ? 'QR menu publik diaktifkan.' : 'QR menu publik dinonaktifkan.'
+        );
     }
 }

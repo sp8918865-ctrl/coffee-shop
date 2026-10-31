@@ -12,20 +12,37 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = env('ADMIN_EMAIL');
+        $username = env('ADMIN_USERNAME');
         $password = env('ADMIN_PASSWORD');
 
-        if (! $email || ! $password) {
+        if (! $username || ! $password) {
             return;
         }
 
         User::updateOrCreate(
-            ['email' => $email],
+            ['username' => $username],
             [
                 'name' => env('ADMIN_NAME', 'Administrator'),
                 'password_hash' => $password,
                 'role' => 'owner',
             ]
         );
+
+        $baristaUsername = env('BARISTA_USERNAME');
+        $baristaPassword = env('BARISTA_PASSWORD');
+        if ($baristaUsername === $username) {
+            throw new \InvalidArgumentException('ADMIN_USERNAME dan BARISTA_USERNAME harus berbeda.');
+        }
+
+        if ($baristaUsername && $baristaPassword) {
+            User::updateOrCreate(
+                ['username' => $baristaUsername],
+                [
+                    'name' => env('BARISTA_NAME', 'Barista'),
+                    'password_hash' => $baristaPassword,
+                    'role' => 'barista',
+                ]
+            );
+        }
     }
 }

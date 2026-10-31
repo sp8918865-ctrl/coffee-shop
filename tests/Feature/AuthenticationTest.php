@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
+use App\Models\AppSetting;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -17,28 +18,28 @@ class AuthenticationTest extends TestCase
         $this->get('/')->assertRedirect(route('login'));
     }
 
-    public function test_admin_landing_redirects_signed_in_managers_to_the_dashboard(): void
+    public function test_application_landing_always_opens_the_login_page(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'owner']))
             ->get('/')
-            ->assertRedirect(route('admin.dashboard'));
+            ->assertRedirect(route('login'));
     }
 
     public function test_barista_login_opens_the_shared_panel_without_staff_management(): void
     {
         $barista = User::factory()->create([
-            'email' => 'barista@example.test',
+            'username' => 'barista@example.test',
             'password_hash' => 'secret12345',
             'role' => 'barista',
         ]);
 
         $this->post(route('login.submit'), [
-            'email' => $barista->email,
+            'username' => $barista->username,
             'password' => 'secret12345',
         ])->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($barista);
-        $this->get('/')->assertRedirect(route('admin.dashboard'));
+        $this->get('/')->assertRedirect(route('login'));
         $this->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Dasbor & Pendapatan')
@@ -49,11 +50,11 @@ class AuthenticationTest extends TestCase
         $this->get(route('admin.staf'))->assertForbidden();
         $this->post(route('admin.staf.store'), [
             'name' => 'Staf Baru',
-            'email' => 'staff@example.test',
+            'username' => 'staff@example.test',
             'password' => 'secret12345',
             'role' => 'barista',
         ])->assertForbidden();
-        $this->assertDatabaseMissing('users', ['email' => 'staff@example.test']);
+        $this->assertDatabaseMissing('users', ['username' => 'staff@example.test']);
     }
 
     public function test_demo_login_is_only_available_in_local_environment(): void
@@ -69,7 +70,7 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $this->assertDatabaseHas('users', [
-            'email' => 'demo-admin@localhost',
+            'username' => 'demo-admin',
             'role' => 'owner',
         ]);
     }
@@ -135,16 +136,27 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_disabling_public_qr_blocks_existing_customer_sessions(): void
+    {
+        $this->get(URL::signedRoute('customer.qr.enter', absolute: false))
+            ->assertRedirect(route('catalog.index'));
+
+        AppSetting::setPublicQrEnabled(false);
+
+        $this->get(route('catalog.index'))->assertForbidden();
+        $this->get(URL::signedRoute('customer.qr.enter', absolute: false))->assertForbidden();
+    }
+
     public function test_staff_without_a_supported_panel_is_logged_out_after_sign_in(): void
     {
         $staff = User::factory()->create([
-            'email' => 'cashier@example.test',
+            'username' => 'cashier@example.test',
             'password_hash' => 'secret12345',
             'role' => 'cashier',
         ]);
 
         $this->post(route('login.submit'), [
-            'email' => $staff->email,
+            'username' => $staff->username,
             'password' => 'secret12345',
         ])->assertRedirect(route('login'))
             ->assertSessionHas('status');
@@ -205,18 +217,18 @@ class AuthenticationTest extends TestCase
     public function test_user_can_log_in_and_log_out_with_database_credentials(): void
     {
         $user = User::factory()->create([
-            'email' => 'barista@example.test',
+            'username' => 'barista@example.test',
             'password_hash' => 'secret12345',
         ]);
 
         $this->post(route('login.submit'), [
-            'email' => 'barista@example.test',
+            'username' => 'barista@example.test',
             'password' => 'wrong-password',
-        ])->assertSessionHasErrors('email');
+        ])->assertSessionHasErrors('username');
         $this->assertGuest();
 
         $this->post(route('login.submit'), [
-            'email' => 'barista@example.test',
+            'username' => 'barista@example.test',
             'password' => 'secret12345',
         ])->assertRedirect(route('admin.dashboard'));
         $this->assertAuthenticatedAs($user);

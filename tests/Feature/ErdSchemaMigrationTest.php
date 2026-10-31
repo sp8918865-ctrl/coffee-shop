@@ -23,7 +23,7 @@ class ErdSchemaMigrationTest extends TestCase
         DB::table('users')->insert([
             'id' => 41,
             'name' => 'Existing User',
-            'email' => 'existing@example.test',
+            'username' => 'existing-user',
             'password' => $passwordHash,
             'role' => 'cashier',
             'created_at' => $now,

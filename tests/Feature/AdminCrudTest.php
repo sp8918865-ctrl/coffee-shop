@@ -86,7 +86,7 @@ class AdminCrudTest extends TestCase
         $user = User::factory()->create();
 
         $this->post(route('login.submit'), [
-            'email' => $user->email,
+            'username' => $user->username,
             'password' => 'password',
         ])->assertRedirect(route('admin.dashboard'));
 
@@ -156,33 +156,50 @@ class AdminCrudTest extends TestCase
 
     public function test_staff_accounts_can_be_saved_updated_and_deleted(): void
     {
-        $this->actingAs(User::factory()->create());
+        $manager = User::factory()->create();
+        $this->actingAs($manager);
 
         $this->post(route('admin.staf.store'), [
             'name' => 'Ayu Barista',
-            'email' => 'ayu@example.test',
+            'username' => 'ayu@example.test',
             'password' => 'secret123',
             'role' => 'barista',
         ])->assertRedirect(route('admin.staf'));
-        $user = User::where('email', 'ayu@example.test')->firstOrFail();
+        $user = User::where('username', 'ayu@example.test')->firstOrFail();
         $this->assertTrue(Hash::check('secret123', $user->password_hash));
         $this->assertSame('barista', $user->role);
 
         $this->put(route('admin.staf.update', $user), [
             'name' => 'Ayu Senior',
-            'email' => 'ayu@example.test',
+            'username' => 'ayu@example.test',
             'password' => '',
             'role' => 'barista',
         ])->assertRedirect(route('admin.staf'));
         $this->assertDatabaseHas('users', ['user_id' => $user->user_id, 'name' => 'Ayu Senior']);
+        $this->assertTrue(Hash::check('secret123', $user->fresh()->password_hash));
+
+        $this->put(route('admin.staf.update', $user), [
+            'name' => 'Ayu Senior',
+            'username' => 'ayu@example.test',
+            'password' => 'newsecret123',
+            'role' => 'barista',
+        ])->assertRedirect(route('admin.staf'));
+        $this->assertFalse(Hash::check('secret123', $user->fresh()->password_hash));
+        $this->assertTrue(Hash::check('newsecret123', $user->fresh()->password_hash));
+        $this->post(route('logout'));
+        $this->post(route('login.submit'), [
+            'username' => 'ayu@example.test',
+            'password' => 'newsecret123',
+        ])->assertRedirect(route('admin.dashboard'));
+        $this->actingAs($manager);
 
         $this->post(route('admin.staf.store'), [
             'name' => 'Dewi Admin',
-            'email' => 'dewi-admin@example.test',
+            'username' => 'dewi-admin@example.test',
             'password' => 'secret123',
             'role' => 'admin',
         ])->assertRedirect(route('admin.staf'));
-        $admin = User::where('email', 'dewi-admin@example.test')->firstOrFail();
+        $admin = User::where('username', 'dewi-admin@example.test')->firstOrFail();
         $this->assertSame('admin', $admin->role);
         $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
 

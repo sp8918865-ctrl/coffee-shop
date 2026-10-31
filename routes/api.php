@@ -32,10 +32,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         ->name('auth.login');
 
     Route::get('/customer/qr-access', [CustomerController::class, 'issueQrToken'])
-        ->middleware(['signed:relative', 'throttle:10,1'])
+        ->middleware(['signed:relative', 'public.qr', 'throttle:10,1'])
         ->name('customer.qr-access');
 
-    Route::middleware('customer.api')->prefix('customer')->name('customer.')->group(function () {
+    Route::middleware(['public.qr', 'customer.api'])->prefix('customer')->name('customer.')->group(function () {
         Route::post('/auth/logout', [CustomerController::class, 'revokeQrToken'])->name('auth.logout');
         Route::get('/menu', [CustomerController::class, 'menu'])->name('menu');
         Route::get('/tables', [CustomerController::class, 'tables'])->name('tables');

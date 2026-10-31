@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Warung Luwak Console</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen p-4">
 
@@ -32,12 +31,12 @@
         <form action="{{ route('login.submit') }}" method="POST" class="space-y-5">
             @csrf
             <div>
-                <label for="email" class="block text-xs font-semibold text-slate-300 mb-2">Email</label>
+                <label for="username" class="block text-xs font-semibold text-slate-300 mb-2">Username</label>
                 <div class="relative">
-                    <i data-lucide="mail" class="w-5 h-5 text-slate-500 absolute left-3.5 top-3.5"></i>
-                    <input id="email" name="email" type="email" autocomplete="username" value="{{ old('email') }}" required class="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-sm transition" placeholder="nama@contoh.com">
+                    <i data-lucide="user" class="w-5 h-5 text-slate-500 absolute left-3.5 top-3.5"></i>
+                    <input id="username" name="username" type="text" autocomplete="username" value="{{ old('username') }}" required class="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-amber-500 text-sm transition" placeholder="username">
                 </div>
-                @error('email')<p class="mt-2 text-xs text-rose-300">{{ $message }}</p>@enderror
+                @error('username')<p class="mt-2 text-xs text-rose-300">{{ $message }}</p>@enderror
             </div>
 
             <div>

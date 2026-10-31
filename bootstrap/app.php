@@ -6,6 +6,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureDesktopDevice;
 use App\Http\Middleware\EnsureCustomerScannedQr;
 use App\Http\Middleware\EnsureCustomerApiToken;
+use App\Http\Middleware\EnsurePublicQrEnabled;
 use App\Http\Middleware\EnsureUserCanAccessAdminPanel;
 use App\Http\Middleware\EnsureUserIsManager;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.panel' => EnsureUserCanAccessAdminPanel::class,
             'customer.qr' => EnsureCustomerScannedQr::class,
             'customer.api' => EnsureCustomerApiToken::class,
+            'public.qr' => EnsurePublicQrEnabled::class,
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
         ]);

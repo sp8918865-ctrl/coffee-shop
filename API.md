@@ -44,7 +44,7 @@ Accept: application/json
 
 ```json
 {
-  "email": "admin@example.com",
+  "username": "admin",
   "password": "rahasia",
   "device_name": "admin-mobile"
 }

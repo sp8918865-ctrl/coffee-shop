@@ -29,13 +29,13 @@ class CoreApiTest extends TestCase
     public function test_admin_can_login_use_api_and_revoke_a_bearer_token(): void
     {
         $admin = User::factory()->create([
-            'email' => 'owner@example.test',
+            'username' => 'owner@example.test',
             'password_hash' => 'secret-password',
             'role' => 'owner',
         ]);
 
         $login = $this->postJson('/api/v1/auth/login', [
-            'email' => $admin->email,
+            'username' => $admin->username,
             'password' => 'secret-password',
             'device_name' => 'test-client',
         ])->assertOk()
@@ -59,16 +59,16 @@ class CoreApiTest extends TestCase
     public function test_non_admin_cannot_get_an_admin_api_token(): void
     {
         $barista = User::factory()->create([
-            'email' => 'barista@example.test',
+            'username' => 'barista@example.test',
             'password_hash' => 'secret-password',
             'role' => 'barista',
         ]);
 
         $this->postJson('/api/v1/auth/login', [
-            'email' => $barista->email,
+            'username' => $barista->username,
             'password' => 'secret-password',
         ])->assertUnprocessable()
-            ->assertJsonPath('message', 'Email, kata sandi, atau hak akses tidak valid.');
+            ->assertJsonPath('message', 'Username, kata sandi, atau hak akses tidak valid.');
     }
 
     public function test_customer_api_requires_signed_qr_entry_and_hides_unavailable_menu_items(): void
@@ -170,12 +170,12 @@ class CoreApiTest extends TestCase
     public function test_admin_api_can_manage_products_categories_ingredients_and_tables(): void
     {
         $admin = User::factory()->create([
-            'email' => 'api-owner@example.test',
+            'username' => 'api-owner@example.test',
             'password_hash' => 'secret-password',
             'role' => 'owner',
         ]);
         $token = $this->postJson('/api/v1/auth/login', [
-            'email' => $admin->email,
+            'username' => $admin->username,
             'password' => 'secret-password',
         ])->json('data.token');
         $this->withToken($token);
@@ -239,18 +239,18 @@ class CoreApiTest extends TestCase
     public function test_mobile_devices_cannot_log_in_to_or_use_admin_api(): void
     {
         $admin = User::factory()->create([
-            'email' => 'desktop-owner@example.test',
+            'username' => 'desktop-owner@example.test',
             'password_hash' => 'secret-password',
             'role' => 'owner',
         ]);
         $token = $this->postJson('/api/v1/auth/login', [
-            'email' => $admin->email,
+            'username' => $admin->username,
             'password' => 'secret-password',
         ])->json('data.token');
 
         $this->withHeader('User-Agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile')
             ->postJson('/api/v1/auth/login', [
-                'email' => $admin->email,
+                'username' => $admin->username,
                 'password' => 'secret-password',
             ])
             ->assertForbidden();

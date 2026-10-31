@@ -20,17 +20,13 @@ Route::get('/menu/qr-entry', function (Request $request) {
     $request->session()->regenerate();
 
     return redirect()->route('catalog.index');
-})->middleware('signed:relative')->name('customer.qr.enter');
+})->middleware(['signed:relative', 'public.qr'])->name('customer.qr.enter');
 
 Route::get('/', function (Request $request) {
-    $user = $request->user();
-
-    return redirect()->route(
-        in_array($user?->role, ['admin', 'owner', 'barista'], true) ? 'admin.dashboard' : 'login'
-    );
+    return redirect()->route('login');
 });
 
-Route::middleware('customer.qr')->group(function () {
+Route::middleware(['public.qr', 'customer.qr'])->group(function () {
     Route::get('/menu', [CatalogController::class, 'index'])->name('catalog.index');
     Route::post('/cart/items/{product}', [PublicOrderController::class, 'addToCart'])->whereNumber('product')->name('cart.add');
     Route::patch('/cart/items/{product}', [PublicOrderController::class, 'updateCart'])->whereNumber('product')->name('cart.update');
@@ -51,13 +47,13 @@ Route::post('/login/demo', function (Request $request) {
     abort_unless(app()->environment('local'), 404);
 
     $demoUser = \App\Models\User::whereIn('role', ['admin', 'owner'])
-        ->where('email', 'demo-admin@localhost')
+        ->where('username', 'demo-admin')
         ->first();
 
     if (! $demoUser) {
         $demoUser = \App\Models\User::create([
             'name' => 'Admin Demo',
-            'email' => 'demo-admin@localhost',
+            'username' => 'demo-admin',
             'password_hash' => Str::random(64),
             'role' => 'owner',
         ]);
@@ -71,12 +67,12 @@ Route::post('/login/demo', function (Request $request) {
 
 Route::post('/login', function (Request $request) {
     $credentials = $request->validate([
-        'email' => ['required', 'email'],
+        'username' => ['required', 'string', 'max:255'],
         'password' => ['required', 'string'],
     ]);
 
     if (! Auth::attempt($credentials)) {
-        return back()->withErrors(['email' => 'Email atau kata sandi tidak sesuai.'])->onlyInput('email');
+        return back()->withErrors(['username' => 'Username atau kata sandi tidak sesuai.'])->onlyInput('username');
     }
 
     $request->session()->regenerate();
@@ -107,6 +103,7 @@ Route::post('/logout', function (Request $request) {
 Route::middleware(['auth', 'admin.panel', 'desktop'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', fn () => redirect()->route('admin.dashboard'));
     Route::get('/qr-menu', [PublicQrController::class, 'index'])->name('qr-menu');
+    Route::post('/qr-menu/toggle', [PublicQrController::class, 'toggle'])->name('qr-menu.toggle');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/menu', [MenuController::class, 'index'])->name('menu');
     Route::get('/meja', [DiningTableController::class, 'index'])->name('tables');

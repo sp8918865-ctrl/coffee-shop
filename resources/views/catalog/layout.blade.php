@@ -6,8 +6,7 @@
     <meta name="theme-color" content="#101319">
     @yield('meta')
     <title>@yield('title') - Warung Luwak</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         :root { color-scheme: dark; }
         body { background: #101319; }
@@ -62,7 +61,6 @@
             </a>
         </nav>
     </div>
-    <script>if (window.lucide) lucide.createIcons();</script>
     @stack('scripts')
 </body>
 </html>
