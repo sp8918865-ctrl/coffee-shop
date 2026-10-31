@@ -29,10 +29,12 @@ php artisan key:generate
 php artisan migrate --seed
 npm ci
 npm run build
-php artisan serve
+php artisan serve --host=0.0.0.0 --port=8000
 ```
 
-Buka `http://localhost:8000`.
+Buka `http://localhost:8000` di komputer. Dari ponsel pada Wi-Fi yang sama,
+buka `http://ALAMAT-IP-KOMPUTER:8000` dan izinkan PHP/Laragon pada Windows
+Firewall jika diminta.
 
 ### Akses menu pelanggan dari ponsel
 
@@ -56,7 +58,7 @@ php artisan key:generate
 php artisan migrate --seed
 npm ci
 npm run build
-php artisan serve
+php artisan serve --host=0.0.0.0 --port=8000
 ```
 
 Buka `http://localhost:8000`.
