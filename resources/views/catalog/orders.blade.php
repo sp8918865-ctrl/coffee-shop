@@ -19,7 +19,18 @@
                 </div>
                 <span class="rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1.5 text-[9px] font-bold text-amber-200">{{ str_replace('_', ' ', $order->order_status) }}</span>
             </div>
-            <p class="mt-4 text-xs font-bold text-white">Total Rp {{ number_format($order->total_amount, 0, ',', '.') }}</p>
+            <div class="mt-4 space-y-2 border-t border-white/10 pt-3">
+                @foreach ($order->items as $item)
+                    <div class="flex justify-between gap-3 text-[10px]">
+                        <span class="text-slate-300">{{ $item->quantity }}× {{ $item->product_name }} · Rp {{ number_format($item->unit_price, 0, ',', '.') }} / item</span>
+                        <strong class="shrink-0 text-white">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</strong>
+                    </div>
+                @endforeach
+                <div class="flex justify-between border-t border-white/10 pt-2 text-xs font-bold">
+                    <span class="text-slate-300">Total</span>
+                    <span class="text-amber-300">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                </div>
+            </div>
             <a href="{{ route('orders.track', $order->public_tracking_token) }}" class="mt-4 flex items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3 text-xs font-extrabold text-slate-950">
                 Lihat status pesanan <i data-lucide="arrow-right" class="h-4 w-4"></i>
             </a>

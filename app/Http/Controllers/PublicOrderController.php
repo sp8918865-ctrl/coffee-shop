@@ -98,7 +98,6 @@ class PublicOrderController extends Controller
                 Rule::exists('tables', 'table_id')->where('status', 'available'),
             ],
             'payment_method' => ['required', 'in:qris,cash'],
-            'cash_received' => ['required_if:payment_method,cash', 'nullable', 'integer', 'min:0', 'max:9999999999'],
         ]);
         $items = $this->cartProducts($request);
         $cart = $request->session()->get(self::CART_KEY, []);
@@ -110,14 +109,8 @@ class PublicOrderController extends Controller
         }
 
         $total = $items->sum(fn (Product $product) => $product->price * $product->cart_quantity);
-        $cashReceived = isset($data['cash_received']) ? (int) $data['cash_received'] : null;
-        if ($data['payment_method'] === 'cash' && ($cashReceived === null || $cashReceived < $total)) {
-            throw ValidationException::withMessages([
-                'cash_received' => 'Uang yang disiapkan harus cukup untuk membayar total pesanan.',
-            ]);
-        }
 
-        $order = DB::transaction(function () use ($data, $items, $total, $cashReceived): Order {
+        $order = DB::transaction(function () use ($data, $items, $total): Order {
             $table = null;
             if ($data['order_type'] === 'dine_in') {
                 $table = DiningTable::whereKey($data['table_id'])
@@ -168,8 +161,6 @@ class PublicOrderController extends Controller
                 'payment_method' => $data['payment_method'],
                 'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
                 'amount' => $total,
-                'cash_received' => $data['payment_method'] === 'cash' ? $cashReceived : null,
-                'cash_change' => $data['payment_method'] === 'cash' ? $cashReceived - $total : null,
                 'payment_status' => 'pending',
             ]);
 
@@ -200,7 +191,9 @@ class PublicOrderController extends Controller
     {
         $token = $request->session()->get('latest_public_order_token');
         $order = is_string($token)
-            ? Order::where('public_tracking_token', $token)->first()
+            ? Order::with(['items', 'payments'])
+                ->where('public_tracking_token', $token)
+                ->first()
             : null;
 
         return response()->view('catalog.orders', compact('order'))

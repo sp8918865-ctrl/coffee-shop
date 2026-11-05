@@ -37,6 +37,8 @@ class PublicOrderingTest extends TestCase
             ->assertSee('QRIS simulasi')
             ->assertSee('Bayar tunai di kedai')
             ->assertSee('Rp 18.000')
+            ->assertDontSee('cash_received')
+            ->assertDontSee('Nominal uang tunai yang disiapkan')
             ->assertSee('Meja belum tersedia');
 
         $this->assertGuest();
@@ -106,7 +108,10 @@ class PublicOrderingTest extends TestCase
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertSee($order->order_number)
-            ->assertSee(route('orders.track', $order->public_tracking_token));
+            ->assertSee(route('orders.track', $order->public_tracking_token))
+            ->assertSee('Kopi Susu')
+            ->assertSee('Rp 18.000')
+            ->assertSee('Rp 36.000');
 
         $order->update(['order_status' => 'ready']);
         $this->get(route('orders.track', $order->public_tracking_token))
@@ -126,7 +131,7 @@ class PublicOrderingTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_cash_demo_records_unpaid_takeaway_order_and_validates_checkout(): void
+    public function test_cash_order_does_not_require_or_show_customer_cash_amount(): void
     {
         $this->scanQr();
         $product = $this->product();
@@ -136,7 +141,6 @@ class PublicOrderingTest extends TestCase
             'customer_name' => 'Budi',
             'order_type' => 'take_away',
             'payment_method' => 'cash',
-            'cash_received' => 20000,
         ])->assertRedirect();
 
         $order = Order::with('payments')->firstOrFail();
@@ -144,16 +148,20 @@ class PublicOrderingTest extends TestCase
         $this->assertSame('cash', $order->payments->first()->payment_method);
         $this->assertSame('pending', $order->payments->first()->payment_status);
         $this->assertNull($order->payments->first()->paid_at);
-        $this->assertSame(20000.0, (float) $order->payments->first()->cash_received);
-        $this->assertSame(2000.0, (float) $order->payments->first()->cash_change);
+        $this->assertNull($order->payments->first()->cash_received);
+        $this->assertNull($order->payments->first()->cash_change);
         $this->get(route('orders.track', $order->public_tracking_token))
             ->assertOk()
             ->assertSee('Bon pembayaran')
-            ->assertSee('Uang disiapkan')
-            ->assertSee('Rp 20.000')
-            ->assertSee('Perkiraan kembalian')
-            ->assertSee('Rp 2.000')
+            ->assertSee('Rp 18.000')
+            ->assertDontSee('Uang disiapkan')
+            ->assertDontSee('Perkiraan kembalian')
             ->assertSee('menunggu konfirmasi staf');
+        $this->get(route('orders.index'))
+            ->assertOk()
+            ->assertSee('Rp 18.000')
+            ->assertDontSee('Uang disiapkan')
+            ->assertDontSee('Perkiraan kembalian');
 
         $this->withSession(['public_order_cart' => [$product->product_id => 1]])
             ->from(route('checkout'))
@@ -165,26 +173,6 @@ class PublicOrderingTest extends TestCase
             ->assertSessionHasErrors(['customer_name', 'table_id', 'payment_method']);
 
         $this->assertDatabaseCount('orders', 1);
-    }
-
-    public function test_cash_checkout_rejects_payment_less_than_the_order_total(): void
-    {
-        $this->scanQr();
-        $product = $this->product();
-        $this->withSession(['public_order_cart' => [$product->product_id => 1]])
-            ->from(route('checkout'))
-            ->post(route('checkout.place'), [
-                'customer_name' => 'Budi',
-                'order_type' => 'take_away',
-                'payment_method' => 'cash',
-                'cash_received' => 10000,
-            ])
-            ->assertRedirect(route('checkout'))
-            ->assertSessionHasErrors('cash_received');
-
-        $this->assertDatabaseCount('orders', 0);
-        $this->assertDatabaseCount('payments', 0);
-        $this->assertDatabaseHas('products', ['product_id' => $product->product_id, 'stok' => 20]);
     }
 
     public function test_order_is_not_retrievable_by_sequential_id_or_another_token(): void

@@ -48,7 +48,8 @@ class BaristaOrderFlowTest extends TestCase
         $this->get(route('barista.pesanan'))
             ->assertOk()
             ->assertSee('ORD-BARISTA-001')
-            ->assertSee('Kopi Susu');
+            ->assertSee('Kopi Susu')
+            ->assertSee('Rp 18.000');
 
         $this->patch(route('barista.pesanan.status', $order), ['status' => 'brewing'])
             ->assertRedirect(route('barista.pesanan'));
@@ -82,8 +83,6 @@ class BaristaOrderFlowTest extends TestCase
             'receipt_number' => 'PAY-RECEIPT-001',
             'payment_method' => 'cash',
             'amount' => 36000,
-            'cash_received' => 50000,
-            'cash_change' => 14000,
             'payment_status' => 'pending',
         ]);
 
@@ -91,6 +90,8 @@ class BaristaOrderFlowTest extends TestCase
             ->get(route('barista.pesanan'))
             ->assertOk()
             ->assertSee('Buat bon')
+            ->assertSee('Uang dari pelanggan')
+            ->assertSee('name="cash_received"', false)
             ->assertSee(route('barista.pesanan.receipt', $order), false);
 
         $this->get(route('barista.pesanan.receipt', $order))
@@ -104,11 +105,31 @@ class BaristaOrderFlowTest extends TestCase
             ->assertSee('PAY-RECEIPT-001')
             ->assertSee('Kopi Susu')
             ->assertSee('Rp 36.000')
+            ->assertDontSee('name="cash_received"', false)
+            ->assertDontSee('QRIS');
+
+        $this->post(route('barista.pesanan.cash-payment', $order), [
+            'cash_received' => 50000,
+        ])->assertRedirect(route('barista.pesanan'));
+
+        $payment = $order->fresh()->payments->first();
+        $this->assertSame(50000.0, (float) $payment->cash_received);
+        $this->assertSame(14000.0, (float) $payment->cash_change);
+        $this->assertSame('paid', $payment->payment_status);
+        $this->assertSame($barista->user_id, $payment->processed_by_user_id);
+
+        $this->get(route('barista.pesanan.receipt', $order))
+            ->assertOk()
             ->assertSee('Rp 50.000')
             ->assertSee('Rp 14.000')
-            ->assertSee('Menunggu')
+            ->assertSee('Lunas')
+            ->assertSee('Cetak bon')
             ->assertDontSee('ID TRANSAKSI')
             ->assertDontSee('ADMIN FEE');
+        $this->get(route('barista.pesanan'))
+            ->assertOk()
+            ->assertSee('value="50000.00"', false)
+            ->assertSee('Kembalian: Rp 14.000');
 
         $trackingToken = $order->fresh()->public_tracking_token;
         $this->assertIsString($trackingToken);
@@ -152,17 +173,137 @@ class BaristaOrderFlowTest extends TestCase
             'order_number' => 'ORD-ADMIN-RECEIPT-001',
             'order_type' => 'take_away',
             'order_status' => 'pending',
+            'subtotal' => 12000,
             'total_amount' => 12000,
+        ]);
+        OrderItem::create([
+            'order_id' => $order->order_id,
+            'product_name' => 'Teh',
+            'quantity' => 1,
+            'unit_price' => 12000,
+            'subtotal' => 12000,
+        ]);
+        Payment::create([
+            'order_id' => $order->order_id,
+            'payment_method' => 'cash',
+            'amount' => 12000,
+            'cash_received' => 20000,
+            'cash_change' => 8000,
+            'payment_status' => 'pending',
         ]);
 
         $this->actingAs($admin, 'web')
             ->get(route('admin.pesanan'))
             ->assertOk()
             ->assertSee('Buat bon')
+            ->assertSee('Uang dari pelanggan')
+            ->assertSee('Rp 12.000')
             ->assertSee(route('admin.pesanan.receipt', $order), false);
 
         $this->get(route('admin.pesanan.receipt', $order))
             ->assertOk()
-            ->assertSee('ORD-ADMIN-RECEIPT-001');
+            ->assertSee('ORD-ADMIN-RECEIPT-001')
+            ->assertSee('Uang diterima')
+            ->assertSee('Rp 20.000')
+            ->assertSee('Kembalian')
+            ->assertSee('Rp 8.000');
+    }
+
+    public function test_qris_receipt_does_not_accept_cash_amount(): void
+    {
+        $barista = User::factory()->create(['role' => 'barista']);
+        $order = Order::create([
+            'order_number' => 'ORD-QRIS-RECEIPT',
+            'order_type' => 'take_away',
+            'order_status' => 'pending',
+            'total_amount' => 12000,
+        ]);
+        Payment::create([
+            'order_id' => $order->order_id,
+            'payment_method' => 'qris',
+            'amount' => 12000,
+            'payment_status' => 'pending',
+        ]);
+        $this->actingAs($barista, 'barista')
+            ->get(route('barista.pesanan'))
+            ->assertOk()
+            ->assertDontSee('Uang dari pelanggan');
+
+        $this->get(route('barista.pesanan.receipt', $order))
+            ->assertOk()
+            ->assertSee('QRIS')
+            ->assertDontSee('Simpan pembayaran tunai')
+            ->assertDontSee('Uang diterima');
+
+        $this->from(route('barista.pesanan.receipt', $order))
+            ->post(route('barista.pesanan.cash-payment', $order), [
+            'cash_received' => 20000,
+        ])
+            ->assertRedirect(route('barista.pesanan.receipt', $order))
+            ->assertSessionHasErrors('cash_received');
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->order_id,
+            'payment_method' => 'qris',
+            'payment_status' => 'pending',
+            'cash_received' => null,
+        ]);
+    }
+
+    public function test_cash_receipt_rejects_amount_less_than_total(): void
+    {
+        $barista = User::factory()->create(['role' => 'barista']);
+        $order = Order::create([
+            'order_number' => 'ORD-CASH-RECEIPT',
+            'order_type' => 'take_away',
+            'order_status' => 'pending',
+            'total_amount' => 12000,
+        ]);
+
+        $this->actingAs($barista, 'barista')
+            ->from(route('barista.pesanan.receipt', $order))
+            ->post(route('barista.pesanan.cash-payment', $order), [
+                'cash_received' => 10000,
+            ])
+            ->assertRedirect(route('barista.pesanan.receipt', $order))
+            ->assertSessionHasErrors('cash_received');
+
+        $this->assertDatabaseCount('payments', 0);
+    }
+
+    public function test_cash_payment_can_be_saved_automatically_with_json_response(): void
+    {
+        $barista = User::factory()->create(['role' => 'barista']);
+        $order = Order::create([
+            'order_number' => 'ORD-AUTO-CASH',
+            'order_type' => 'take_away',
+            'order_status' => 'pending',
+            'total_amount' => 18000,
+        ]);
+        Payment::create([
+            'order_id' => $order->order_id,
+            'payment_method' => 'cash',
+            'amount' => 18000,
+            'payment_status' => 'pending',
+        ]);
+
+        $this->actingAs($barista, 'barista')
+            ->postJson(route('barista.pesanan.cash-payment', $order), [
+                'cash_received' => 20000,
+            ])
+            ->assertOk()
+            ->assertJson([
+                'message' => 'Pembayaran tunai tersimpan.',
+                'cash_received' => 20000,
+                'cash_change' => 2000,
+            ]);
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->order_id,
+            'cash_received' => 20000,
+            'cash_change' => 2000,
+            'payment_status' => 'paid',
+            'processed_by_user_id' => $barista->user_id,
+        ]);
     }
 }

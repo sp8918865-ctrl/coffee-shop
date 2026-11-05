@@ -123,6 +123,7 @@ $registerPanelRoutes = function (string $prefix, string $guard, string $accessMi
             Route::delete('/kategori/{category}', [MenuController::class, 'destroyCategory'])->name('categories.destroy');
             Route::get('/pesanan', [PesananController::class, 'index'])->name('pesanan');
             Route::get('/pesanan/{order}/bon', [PesananController::class, 'receipt'])->name('pesanan.receipt');
+            Route::post('/pesanan/{order}/bon/pembayaran-tunai', [PesananController::class, 'recordCashPayment'])->name('pesanan.cash-payment');
             Route::post('/pesanan', [PesananController::class, 'store'])->name('pesanan.store');
             Route::patch('/pesanan/{order}/status', [PesananController::class, 'updateStatus'])->name('pesanan.status');
             Route::delete('/pesanan/{order}', [PesananController::class, 'destroy'])->name('pesanan.destroy');
@@ -133,6 +134,7 @@ $registerPanelRoutes = function (string $prefix, string $guard, string $accessMi
 
             if ($includeStaff) {
                 Route::middleware('manager')->group(function (): void {
+                    Route::get('/laporan-penjualan', [DashboardController::class, 'salesReport'])->name('sales-report');
                     Route::get('/staf', [StafController::class, 'index'])->name('staf');
                     Route::post('/staf', [StafController::class, 'store'])->name('staf.store');
                     Route::put('/staf/{user}', [StafController::class, 'update'])->name('staf.update');

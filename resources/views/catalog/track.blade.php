@@ -88,13 +88,8 @@
             @if ($order->customer_name)
                 <p class="mt-1 text-[9px] text-slate-400">Pelanggan: {{ $order->customer_name }}</p>
             @endif
-            @if ($payment->payment_method === 'cash' && $payment->cash_received !== null)
-                <div class="mt-3 space-y-2 rounded-xl bg-[#101319] p-3 text-[10px]">
-                    <div class="flex justify-between gap-3"><span class="text-slate-400">Metode pembayaran</span><span class="font-semibold text-white">Tunai · menunggu konfirmasi staf</span></div>
-                    <div class="flex justify-between gap-3"><span class="text-slate-400">Total pesanan</span><span class="font-semibold text-white">Rp {{ number_format($payment->amount, 0, ',', '.') }}</span></div>
-                    <div class="flex justify-between gap-3"><span class="text-slate-400">Uang disiapkan</span><span class="font-semibold text-white">Rp {{ number_format($payment->cash_received, 0, ',', '.') }}</span></div>
-                    <div class="flex justify-between gap-3 border-t border-white/10 pt-2"><span class="font-bold text-amber-200">Perkiraan kembalian</span><span class="font-bold text-amber-200">Rp {{ number_format($payment->cash_change, 0, ',', '.') }}</span></div>
-                </div>
+            @if ($payment->payment_method === 'cash')
+                <div class="mt-3 flex justify-between gap-3 rounded-xl bg-[#101319] p-3 text-[10px]"><span class="text-slate-400">Metode pembayaran</span><span class="font-semibold text-white">Tunai · menunggu konfirmasi staf</span></div>
             @endif
             @if ($payment->payment_method === 'qris')
                 <div class="mt-3 rounded-xl border border-dashed border-amber-300/20 bg-[#101319] p-4 text-center">

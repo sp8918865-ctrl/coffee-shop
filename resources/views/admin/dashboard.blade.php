@@ -48,6 +48,10 @@
             <h2 class="text-lg font-bold text-white">Ringkasan penjualan</h2>
             <p class="text-xs text-slate-400">Menghitung pesanan berstatus selesai.</p>
         </div>
+        <a href="{{ route('admin.sales-report') }}" class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400">
+            <i data-lucide="printer" class="h-4 w-4"></i>
+            Cetak ringkasan penjualan
+        </a>
         <div class="grid gap-4 md:grid-cols-3">
             @foreach ($salesSummary as $period => $amount)
                 <article class="rounded-xl border border-[#1e293b] bg-[#121824] p-4">

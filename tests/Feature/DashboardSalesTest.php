@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class DashboardSalesTest extends TestCase
@@ -28,6 +29,7 @@ class DashboardSalesTest extends TestCase
             ->assertSee('Ketersediaan menu')
             ->assertSee('Stok gudang')
             ->assertSee('Ringkasan penjualan')
+            ->assertSee('Cetak ringkasan penjualan')
             ->assertSee('7 hari terakhir')
             ->assertSee('Bulan ini')
             ->assertSee('Tahun ini')
@@ -48,6 +50,42 @@ class DashboardSalesTest extends TestCase
             ->assertDontSee('7 hari terakhir')
             ->assertDontSee('Bulan ini')
             ->assertDontSee('Tahun ini');
+    }
+
+    public function test_admin_can_print_sales_report_with_timestamp_components(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-05 12:27:00'));
+        $this->actingAs(User::factory()->create(['role' => 'owner']));
+        $this->recordOrder('SLS-REPORT', 'completed', Carbon::parse('2026-11-05 09:07:00'), 25000);
+        $this->recordOrder('SLS-IGNORED', 'pending', Carbon::parse('2026-11-05 10:30:00'), 99000);
+
+        $this->get(route('admin.sales-report'))
+            ->assertOk()
+            ->assertSee('Cetak laporan')
+            ->assertSee('WARUNG LUWAK — Ringkasan Penjualan')
+            ->assertSee('Tahun')
+            ->assertSee('Bulan')
+            ->assertSee('Tanggal')
+            ->assertSee('Hari')
+            ->assertSee('Jam')
+            ->assertSee('Menit')
+            ->assertSee('2026')
+            ->assertSee('November')
+            ->assertSee('05')
+            ->assertSee('Kamis')
+            ->assertSee('09')
+            ->assertSee('07')
+            ->assertSee('Rp 25.000')
+            ->assertDontSee('SLS-IGNORED');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_barista_cannot_access_sales_report(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'barista']), 'barista')
+            ->get(route('admin.sales-report'))
+            ->assertRedirect(route('login.admin'));
     }
 
     private function recordOrder(string $number, string $status, \Illuminate\Support\Carbon $createdAt, int $total): void

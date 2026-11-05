@@ -28,12 +28,13 @@
         @media print {
             @page { size: 58mm auto; margin: 2mm; }
             body { width: auto; margin: 0; padding: 0; }
-            .actions { display: none; }
+            .actions { display: none !important; }
         }
     </style>
 </head>
 <body>
     @php($payment = $order->payments->sortByDesc('payment_id')->first())
+    @php($paymentMethod = $payment?->payment_method ?? 'cash')
     <header class="center">
         <img class="receipt-logo" src="{{ asset('logo.png') }}" alt="Logo Warung Luwak">
         <strong>WARUNG LUWAK</strong><br>
@@ -72,15 +73,17 @@
         @if ($payment->payment_gateway_ref && $payment->payment_gateway_ref !== 'DEMO-NOT-PROCESSED')
             <div>Referensi: {{ $payment->payment_gateway_ref }}</div>
         @endif
-        <div class="row">
-            <span>Metode</span>
-            <span>{{ $payment->payment_method === 'qris' ? 'QRIS' : 'Tunai' }}</span>
-        </div>
+    @endif
+    <div class="row">
+        <span>Metode</span>
+        <span>{{ $paymentMethod === 'qris' ? 'QRIS' : 'Tunai' }}</span>
+    </div>
+    @if ($payment)
         <div class="row">
             <span>Status</span>
             <span>{{ $payment->payment_status === 'paid' ? 'Lunas' : 'Menunggu' }}</span>
         </div>
-        @if ($payment->payment_method === 'cash' && $payment->cash_received !== null)
+        @if ($paymentMethod === 'cash' && $payment->cash_received !== null)
             <div class="row">
                 <span>Uang diterima</span>
                 <span>Rp {{ number_format($payment->cash_received, 0, ',', '.') }}</span>
@@ -90,11 +93,9 @@
                 <span>Rp {{ number_format($payment->cash_change ?? 0, 0, ',', '.') }}</span>
             </div>
         @endif
-        @if ($payment->payment_method === 'qris' && $payment->payment_status !== 'paid')
-            <p class="muted">QRIS simulasi; pembayaran belum diproses.</p>
-        @endif
-    @else
-        <p class="muted">Data pembayaran belum tercatat.</p>
+    @endif
+    @if ($paymentMethod === 'qris' && $payment?->payment_status !== 'paid')
+        <p class="muted">QRIS simulasi; pembayaran belum diproses.</p>
     @endif
 
     <hr class="rule">
