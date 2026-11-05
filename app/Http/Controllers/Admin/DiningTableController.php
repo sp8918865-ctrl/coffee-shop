@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\DiningTable;
+use App\Support\PanelRoute;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -35,21 +36,21 @@ class DiningTableController extends Controller
     {
         DiningTable::create($this->validatedData($request));
 
-        return redirect()->route('admin.tables')->with('success', 'Meja berhasil ditambahkan.');
+        return redirect()->route(PanelRoute::name('admin.tables'))->with('success', 'Meja berhasil ditambahkan.');
     }
 
     public function update(Request $request, DiningTable $table): RedirectResponse
     {
         $table->update($this->validatedData($request, $table));
 
-        return redirect()->route('admin.tables')->with('success', 'Meja berhasil diperbarui.');
+        return redirect()->route(PanelRoute::name('admin.tables'))->with('success', 'Meja berhasil diperbarui.');
     }
 
     public function destroy(DiningTable $table): RedirectResponse
     {
         $table->delete();
 
-        return redirect()->route('admin.tables')->with('success', 'Meja berhasil dihapus.');
+        return redirect()->route(PanelRoute::name('admin.tables'))->with('success', 'Meja berhasil dihapus.');
     }
 
     private function validatedData(Request $request, ?DiningTable $table = null): array

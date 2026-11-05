@@ -10,10 +10,10 @@
     <div class="min-h-screen md:flex">
         <aside class="flex w-full shrink-0 flex-col justify-between border-b border-[#1e293b] bg-[#0e1420] p-5 md:min-h-screen md:w-64 md:border-b-0 md:border-r">
             <div>
-                <a href="{{ route('admin.dashboard') }}" class="mb-8 block">
+                <a href="{{ \App\Support\PanelRoute::url('admin.dashboard') }}" class="mb-8 block">
                     <span class="flex items-center gap-3">
                         <span class="flex h-11 w-11 shrink-0 items-start justify-center overflow-hidden rounded-xl border border-amber-500/30 bg-[#080b10]"><img src="{{ asset('logo.png') }}" alt="Logo Warung Luwak" class="h-[68px] w-[68px] max-w-none object-cover object-top"></span>
-                        <span><span class="mb-1 block text-[10px] font-mono tracking-widest text-amber-500">ROASTERY ENGINE OS</span><span class="font-bold tracking-wide text-white">Warung Luwak</span><span class="block text-[11px] text-slate-400">Specialty & Slow Bar</span></span>
+                        <span><span class="font-bold tracking-wide text-white">Warung Luwak</span><span class="block text-[11px] text-slate-400">Specialty & Slow Bar</span></span>
                     </span>
                 </a>
                 @php
@@ -25,6 +25,7 @@
                         ['label' => 'Pesanan', 'route' => 'admin.pesanan', 'icon' => 'receipt'],
                         ['label' => 'QR Menu Publik', 'route' => 'admin.qr-menu', 'icon' => 'qr-code'],
                     ];
+
                     if (auth()->user()?->role !== 'barista') {
                         $adminMenu[] = ['label' => 'Data Barista & Staf', 'route' => 'admin.staf', 'icon' => 'users'];
                     }
@@ -32,29 +33,27 @@
                 <nav class="flex gap-1 overflow-x-auto text-xs font-medium md:flex-col">
                     @foreach ($adminMenu as $menuItem)
                         <a
-                            href="{{ route($menuItem['route']) }}"
-                            class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs($menuItem['route']) ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}"
+                            href="{{ \App\Support\PanelRoute::url($menuItem['route']) }}"
+                            class="flex items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 {{ request()->routeIs(\App\Support\PanelRoute::name($menuItem['route'])) ? 'border border-amber-500/20 bg-amber-500/10 font-semibold text-amber-400' : 'text-slate-400 transition hover:bg-[#182030] hover:text-white' }}"
                         >
                             <i data-lucide="{{ $menuItem['icon'] }}" class="h-4 w-4"></i>
                             <span>{{ $menuItem['label'] }}</span>
                         </a>
                     @endforeach
                 </nav>
-                <form method="POST" action="{{ route('logout') }}" class="mt-2 md:hidden">@csrf<button class="flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-medium text-rose-400"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar</button></form>
+                <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.logout') }}" class="mt-2 md:hidden">@csrf<button class="flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-medium text-rose-400"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar</button></form>
             </div>
             <div class="mt-6 hidden space-y-4 border-t border-[#1e293b] pt-5 md:block">
-                <div class="text-[11px]"><span class="block text-[10px] font-semibold tracking-wider text-amber-500">TERMINAL READY</span><span class="font-medium text-slate-300">Mesin Espresso Synesso #01</span><span class="mt-1 flex items-center gap-1.5 text-[10px] text-emerald-400"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>Terhubung ke database</span></div>
-                <form method="POST" action="{{ route('logout') }}">@csrf<button class="flex items-center gap-2 text-xs font-medium text-rose-400 transition hover:text-rose-300"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar / Logout</button></form>
+                <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.logout') }}">@csrf<button class="flex items-center gap-2 text-xs font-medium text-rose-400 transition hover:text-rose-300"><i data-lucide="log-out" class="h-4 w-4"></i>Keluar / Logout</button></form>
             </div>
         </aside>
         <main class="min-w-0 flex-1 space-y-6 p-5 md:p-8">
             <header class="mb-2 flex flex-col justify-between gap-4 border-b border-[#1e293b] pb-4 sm:flex-row sm:items-center">
                 <div>
-                    <div class="mb-1 flex items-center gap-2 text-[11px] text-slate-400"><span class="flex items-center gap-1.5 font-bold text-white"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Warung Luwak Console</span><span>• BAR UTAMA</span><span>• TERMINAL 01</span></div>
+                    <div class="mb-1 flex items-center gap-2 text-[11px] text-slate-400"><span class="flex items-center gap-1.5 font-bold text-white"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Warung Luwak Console</span></div>
                     <h1 class="text-xl font-bold text-white">@yield('heading')</h1>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[10px] text-emerald-300"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>Database aktif</span>
                     <div class="flex items-center gap-2 border-l border-[#1e293b] pl-3"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-400"><i data-lucide="user" class="h-4 w-4"></i></span><span class="text-xs"><strong class="block text-white">{{ auth()->user()?->name ?? 'Admin Lokal' }}</strong><span class="text-[10px] text-slate-400">{{ auth()->user()?->role === 'barista' ? 'Barista' : (auth()->user()?->role === 'owner' ? 'Owner' : 'Administrator') }}</span></span></div>
                 </div>
             </header>

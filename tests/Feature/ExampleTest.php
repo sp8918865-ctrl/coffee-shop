@@ -12,7 +12,7 @@ class ExampleTest extends TestCase
 
     public function test_customer_home_requires_a_valid_qr_scan(): void
     {
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get('/')->assertRedirect(route('login.admin'));
         $this->get(route('catalog.index'))->assertForbidden();
 
         $this->get(URL::signedRoute('customer.qr.enter', absolute: false))

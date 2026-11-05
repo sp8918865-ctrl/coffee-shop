@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ingredient;
+use App\Support\PanelRoute;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,21 +22,21 @@ class BahanController extends Controller
     {
         Ingredient::create($this->validatedData($request));
 
-        return redirect()->route('admin.bahan')->with('success', 'Bahan berhasil ditambahkan.');
+        return redirect()->route(PanelRoute::name('admin.bahan'))->with('success', 'Bahan berhasil ditambahkan.');
     }
 
     public function update(Request $request, Ingredient $ingredient): RedirectResponse
     {
         $ingredient->update($this->validatedData($request));
 
-        return redirect()->route('admin.bahan')->with('success', 'Bahan berhasil diperbarui.');
+        return redirect()->route(PanelRoute::name('admin.bahan'))->with('success', 'Bahan berhasil diperbarui.');
     }
 
     public function destroy(Ingredient $ingredient): RedirectResponse
     {
         $ingredient->delete();
 
-        return redirect()->route('admin.bahan')->with('success', 'Bahan berhasil dihapus.');
+        return redirect()->route(PanelRoute::name('admin.bahan'))->with('success', 'Bahan berhasil dihapus.');
     }
 
     private function validatedData(Request $request): array

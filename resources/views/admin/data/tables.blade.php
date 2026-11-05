@@ -13,7 +13,7 @@
 
     <details class="rounded-xl border border-[#1e293b] bg-[#121824] p-5">
         <summary class="flex cursor-pointer list-none items-center justify-between text-xs font-bold text-amber-400"><span class="flex items-center gap-2"><i data-lucide="plus" class="h-4 w-4"></i>Tambah meja</span><i data-lucide="chevron-down" class="h-4 w-4"></i></summary>
-        <form method="POST" action="{{ route('admin.tables.store') }}" class="mt-4">
+        <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.tables.store') }}" class="mt-4">
             @csrf
             <div class="grid gap-3 sm:grid-cols-3">
                 <label class="text-xs text-slate-300">Nomor / nama meja<input name="table_number" required maxlength="30" value="{{ old('table_number') }}" placeholder="Contoh: 01 atau Teras 1" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-white"></label>
@@ -33,7 +33,7 @@
                 </div>
                 <details class="mt-4 border-t border-[#1e293b] pt-3">
                     <summary class="cursor-pointer text-xs font-semibold text-amber-400">Ubah meja</summary>
-                    <form method="POST" action="{{ route('admin.tables.update', $table) }}" class="mt-3 grid gap-3 sm:grid-cols-3">
+                    <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.tables.update', $table) }}" class="mt-3 grid gap-3 sm:grid-cols-3">
                         @csrf @method('PUT')
                         <label class="text-[10px] text-slate-400">Nomor<input name="table_number" required maxlength="30" value="{{ $table->table_number }}" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-2 py-2 text-xs text-white"></label>
                         <label class="text-[10px] text-slate-400">Kapasitas<input name="capacity" required type="number" min="1" max="100" value="{{ $table->capacity }}" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-2 py-2 text-xs text-white"></label>
@@ -41,7 +41,7 @@
                         <button class="rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-slate-950 sm:col-span-3">Simpan perubahan</button>
                     </form>
                 </details>
-                <form method="POST" action="{{ route('admin.tables.destroy', $table) }}" onsubmit="return confirm('Hapus meja ini dari daftar?')" class="mt-3">@csrf @method('DELETE')<button class="text-xs text-rose-400">Hapus meja</button></form>
+                <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.tables.destroy', $table) }}" onsubmit="return confirm('Hapus meja ini dari daftar?')" class="mt-3">@csrf @method('DELETE')<button class="text-xs text-rose-400">Hapus meja</button></form>
             </article>
         @empty
             <p class="rounded-xl border border-dashed border-[#26334d] p-6 text-center text-xs text-slate-400 lg:col-span-2">Belum ada meja. Tambahkan meja agar pelanggan dapat memilihnya saat memesan di tempat.</p>
@@ -60,7 +60,7 @@
         tableRefreshInProgress = true;
 
         try {
-            const response = await fetch(@json(route('admin.tables.status')), {
+            const response = await fetch(@json(\App\Support\PanelRoute::url('admin.tables.status')), {
                 headers: { 'Accept': 'application/json' },
                 cache: 'no-store'
             });

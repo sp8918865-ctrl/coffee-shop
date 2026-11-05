@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
+use App\Support\PanelRoute;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\URL;
@@ -36,7 +37,7 @@ class PublicQrController extends Controller
 
         AppSetting::setPublicQrEnabled((bool) $data['enabled']);
 
-        return redirect()->route('admin.qr-menu')->with(
+        return redirect()->route(PanelRoute::name('admin.qr-menu'))->with(
             'success',
             $data['enabled'] ? 'QR menu publik diaktifkan.' : 'QR menu publik dinonaktifkan.'
         );

@@ -14,15 +14,16 @@ class AuthenticationTest extends TestCase
 
     public function test_guest_is_redirected_from_admin_pages(): void
     {
-        $this->get(route('admin.dashboard'))->assertRedirect(route('login'));
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get(route('admin.dashboard'))->assertRedirect(route('login.admin'));
+        $this->get(route('barista.dashboard'))->assertRedirect(route('login.barista'));
+        $this->get('/')->assertRedirect(route('login.admin'));
     }
 
     public function test_application_landing_always_opens_the_login_page(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'owner']))
             ->get('/')
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('login.admin'));
     }
 
     public function test_barista_login_opens_the_shared_panel_without_staff_management(): void
@@ -33,46 +34,84 @@ class AuthenticationTest extends TestCase
             'role' => 'barista',
         ]);
 
-        $this->post(route('login.submit'), [
+        $this->post(route('login.barista.submit'), [
             'username' => $barista->username,
             'password' => 'secret12345',
-        ])->assertRedirect(route('admin.dashboard'));
+        ])->assertRedirect(route('barista.dashboard'));
 
-        $this->assertAuthenticatedAs($barista);
-        $this->get('/')->assertRedirect(route('login'));
-        $this->get(route('admin.dashboard'))
+        $this->assertAuthenticatedAs($barista, 'barista');
+        $this->get('/')->assertRedirect(route('login.admin'));
+        $this->get(route('barista.dashboard'))
             ->assertOk()
             ->assertSee('Dasbor & Pendapatan')
+            ->assertSee('Kelola Menu')
+            ->assertSee('Kelola Meja')
+            ->assertSee('Stok Bahan')
             ->assertSee('Pesanan')
-            ->assertDontSee('Data Barista & Staf');
-        $this->get(route('admin.menu'))->assertOk();
-        $this->get(route('admin.pesanan'))->assertOk();
-        $this->get(route('admin.staf'))->assertForbidden();
+            ->assertSee('QR Menu Publik')
+            ->assertDontSee('Data Barista & Staf')
+            ->assertSee('href="'.route('barista.pesanan').'"', false)
+            ->assertSee('href="'.route('barista.menu').'"', false)
+            ->assertSee('href="'.route('barista.tables').'"', false)
+            ->assertSee('href="'.route('barista.bahan').'"', false)
+            ->assertSee('href="'.route('barista.qr-menu').'"', false);
+        $this->get(route('barista.menu'))->assertOk();
+        $this->get(route('barista.pesanan'))->assertOk();
+        $this->get(route('admin.staf'))->assertRedirect(route('login.admin'));
         $this->post(route('admin.staf.store'), [
             'name' => 'Staf Baru',
             'username' => 'staff@example.test',
             'password' => 'secret12345',
             'role' => 'barista',
-        ])->assertForbidden();
+        ])->assertRedirect(route('login.admin'));
         $this->assertDatabaseMissing('users', ['username' => 'staff@example.test']);
     }
 
-    public function test_demo_login_is_only_available_in_local_environment(): void
+    public function test_login_page_has_no_role_information_or_demo_access(): void
     {
-        $this->post(route('login.demo'))->assertNotFound();
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertDontSee('Akses sesuai peran akun')
+            ->assertDontSee('Admin:')
+            ->assertDontSee('Barista:')
+            ->assertDontSee('Masuk Mode Demo')
+            ->assertDontSee('Akses admin tanpa kredensial');
 
-        $this->app->detectEnvironment(fn () => 'local');
+        $this->post('/login/demo')->assertNotFound();
+        $this->assertDatabaseMissing('users', ['username' => 'demo-admin']);
+    }
 
-        $this->withSession(['_token' => 'demo-test-token'])
-            ->withHeader('X-CSRF-TOKEN', 'demo-test-token')
-            ->post(route('login.demo'))
-            ->assertRedirect(route('admin.dashboard'));
-
-        $this->assertAuthenticated();
-        $this->assertDatabaseHas('users', [
-            'username' => 'demo-admin',
+    public function test_admin_and_barista_can_stay_authenticated_in_separate_panels_in_one_browser_session(): void
+    {
+        $admin = User::factory()->create([
+            'username' => 'owner@example.test',
+            'password_hash' => 'admin-secret',
             'role' => 'owner',
         ]);
+        $barista = User::factory()->create([
+            'username' => 'barista@example.test',
+            'password_hash' => 'barista-secret',
+            'role' => 'barista',
+        ]);
+
+        $this->post(route('login.admin.submit'), [
+            'username' => $admin->username,
+            'password' => 'admin-secret',
+        ])->assertRedirect(route('admin.dashboard'));
+        $this->post(route('login.barista.submit'), [
+            'username' => $barista->username,
+            'password' => 'barista-secret',
+        ])->assertRedirect(route('barista.dashboard'));
+
+        $this->assertAuthenticatedAs($admin, 'web');
+        $this->assertAuthenticatedAs($barista, 'barista');
+        $this->get(route('admin.dashboard'))->assertOk()->assertSee('Owner');
+        $this->get(route('barista.dashboard'))->assertOk()->assertSee('Barista');
+
+        $this->post(route('barista.logout'))->assertRedirect(route('login.barista'));
+        $this->assertAuthenticatedAs($admin, 'web');
+        $this->assertGuest('barista');
+        $this->get(route('admin.dashboard'))->assertOk();
     }
 
     public function test_public_catalog_shows_available_products_after_qr_scan_without_login(): void
@@ -158,11 +197,10 @@ class AuthenticationTest extends TestCase
         $this->post(route('login.submit'), [
             'username' => $staff->username,
             'password' => 'secret12345',
-        ])->assertRedirect(route('login'))
-            ->assertSessionHas('status');
+        ])->assertSessionHasErrors('username');
         $this->assertGuest();
-        $this->get(route('login'))->assertSee('Akun ini belum memiliki akses ke panel admin atau barista.');
-        $this->get(route('admin.dashboard'))->assertRedirect(route('login'));
+        $this->get(route('login'))->assertOk();
+        $this->get(route('admin.dashboard'))->assertRedirect(route('login.admin'));
     }
 
     public function test_manager_can_view_public_catalog_qr_using_the_current_host(): void
@@ -214,6 +252,22 @@ class AuthenticationTest extends TestCase
             ->assertOk();
     }
 
+    public function test_admin_layout_hides_hardware_location_and_database_status_labels(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'owner']))
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Warung Luwak')
+            ->assertSee('Keluar / Logout')
+            ->assertDontSee('ROASTERY ENGINE OS')
+            ->assertDontSee('TERMINAL READY')
+            ->assertDontSee('Mesin Espresso Synesso')
+            ->assertDontSee('Terhubung ke database')
+            ->assertDontSee('BAR UTAMA')
+            ->assertDontSee('TERMINAL 01')
+            ->assertDontSee('Database aktif');
+    }
+
     public function test_user_can_log_in_and_log_out_with_database_credentials(): void
     {
         $user = User::factory()->create([
@@ -233,7 +287,7 @@ class AuthenticationTest extends TestCase
         ])->assertRedirect(route('admin.dashboard'));
         $this->assertAuthenticatedAs($user);
 
-        $this->post(route('logout'))->assertRedirect(route('login'));
+        $this->post(route('logout'))->assertRedirect(route('login.admin'));
         $this->assertGuest();
     }
 }

@@ -7,9 +7,12 @@ use App\Models\DiningTable;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Support\PanelRoute;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -28,6 +31,27 @@ class PesananController extends Controller
         return view('admin.data.pesanan', compact(
             'pesananBaru', 'pesananBrewing', 'pesananReady', 'pesananSelesai', 'products', 'tables'
         ));
+    }
+
+    public function receipt(Order $order): View
+    {
+        $order->load(['items', 'payments']);
+        if (! $order->public_tracking_token) {
+            $order->public_tracking_token = Str::random(64);
+            $order->save();
+        }
+
+        $trackingPath = URL::signedRoute(
+            'customer.order.track.enter',
+            ['token' => $order->public_tracking_token],
+            absolute: false
+        );
+        $trackingUrl = rtrim(
+            config('app.public_menu_url') ?: request()->getSchemeAndHttpHost(),
+            '/'
+        ).$trackingPath;
+
+        return view('admin.data.receipt', compact('order', 'trackingUrl'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -98,7 +122,7 @@ class PesananController extends Controller
             }
         });
 
-        return redirect()->route('admin.pesanan')->with('success', 'Pesanan berhasil dibuat.');
+        return redirect()->route(PanelRoute::name('admin.pesanan'))->with('success', 'Pesanan berhasil dibuat.');
     }
 
     public function updateStatus(Request $request, Order $order): RedirectResponse
@@ -119,13 +143,13 @@ class PesananController extends Controller
             ][$data['status']],
         ]);
 
-        return redirect()->route('admin.pesanan')->with('success', 'Status pesanan diperbarui.');
+        return redirect()->route(PanelRoute::name('admin.pesanan'))->with('success', 'Status pesanan diperbarui.');
     }
 
     public function destroy(Order $order): RedirectResponse
     {
         $order->delete();
 
-        return redirect()->route('admin.pesanan')->with('success', 'Pesanan berhasil dihapus.');
+        return redirect()->route(PanelRoute::name('admin.pesanan'))->with('success', 'Pesanan berhasil dihapus.');
     }
 }

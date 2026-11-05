@@ -72,10 +72,10 @@ barista harus berbeda.
 Jika seeder sudah pernah dijalankan, jalankan `php artisan db:seed` setelah
 mengubah nilai tersebut.
 
-Dalam `APP_ENV=local`, login menerima input apa pun dan halaman admin terbuka
-untuk pengembangan. Jangan gunakan mode lokal atau `APP_DEBUG=true` pada server
-publik. Untuk penggunaan produksi, siapkan server dan database sendiri serta
-atur `.env` produksi secara aman.
+Login admin/owner tersedia di `/login/admin`, sedangkan login barista tersedia
+di `/login/barista`. Keduanya menggunakan sesi terpisah sehingga admin dan
+barista dapat membuka panel masing-masing bersamaan pada browser yang sama.
+Keluar dari satu panel tidak mengeluarkan akun dari panel lainnya.
 
 ## Database dan data
 

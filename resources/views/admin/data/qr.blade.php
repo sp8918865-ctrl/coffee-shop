@@ -12,7 +12,7 @@
         <p class="text-sm font-semibold text-white">Status QR menu publik</p>
         <p class="mt-1 text-xs {{ $isEnabled ? 'text-emerald-300' : 'text-rose-300' }}">{{ $isEnabled ? 'ON · Pelanggan dapat membuka menu melalui QR.' : 'OFF · Akses pelanggan melalui QR sedang ditutup.' }}</p>
     </div>
-    <form method="POST" action="{{ route('admin.qr-menu.toggle') }}">
+    <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.qr-menu.toggle') }}">
         @csrf
         <input type="hidden" name="enabled" value="{{ $isEnabled ? '0' : '1' }}">
         <button class="rounded-lg px-4 py-2 text-xs font-bold {{ $isEnabled ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-slate-950' }}">{{ $isEnabled ? 'Matikan QR' : 'Nyalakan QR' }}</button>

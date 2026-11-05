@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\PanelRoute;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -41,21 +42,21 @@ class MenuController extends Controller
     {
         Product::create($this->validatedData($request));
 
-        return redirect()->route('admin.menu')->with('success', 'Menu berhasil ditambahkan.');
+        return redirect()->route(PanelRoute::name('admin.menu'))->with('success', 'Menu berhasil ditambahkan.');
     }
 
     public function update(Request $request, Product $product): RedirectResponse
     {
         $product->update($this->validatedData($request, $product));
 
-        return redirect()->route('admin.menu')->with('success', 'Menu berhasil diperbarui.');
+        return redirect()->route(PanelRoute::name('admin.menu'))->with('success', 'Menu berhasil diperbarui.');
     }
 
     public function destroy(Product $product): RedirectResponse
     {
         $product->delete();
 
-        return redirect()->route('admin.menu')->with('success', 'Menu berhasil dihapus.');
+        return redirect()->route(PanelRoute::name('admin.menu'))->with('success', 'Menu berhasil dihapus.');
     }
 
     public function storeCategory(Request $request): RedirectResponse
@@ -66,14 +67,14 @@ class MenuController extends Controller
 
         Category::create($data);
 
-        return redirect()->route('admin.menu')->with('success', 'Kategori berhasil ditambahkan.');
+        return redirect()->route(PanelRoute::name('admin.menu'))->with('success', 'Kategori berhasil ditambahkan.');
     }
 
     public function destroyCategory(Category $category): RedirectResponse
     {
         $category->delete();
 
-        return redirect()->route('admin.menu')->with('success', 'Kategori berhasil dihapus.');
+        return redirect()->route(PanelRoute::name('admin.menu'))->with('success', 'Kategori berhasil dihapus.');
     }
 
     private function validatedData(Request $request, ?Product $product = null): array

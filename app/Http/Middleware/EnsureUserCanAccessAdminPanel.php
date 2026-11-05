@@ -11,9 +11,9 @@ class EnsureUserCanAccessAdminPanel
     public function handle(Request $request, Closure $next): Response
     {
         abort_unless(
-            in_array($request->user()?->role, ['admin', 'owner', 'barista'], true),
+            in_array($request->user()?->role, ['admin', 'owner'], true),
             403,
-            'Halaman tersebut hanya dapat diakses admin, owner, atau barista.'
+            'Halaman tersebut hanya dapat diakses admin atau owner.'
         );
 
         return $next($request);

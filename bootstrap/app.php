@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use App\Http\Middleware\EnsureDesktopDevice;
 use App\Http\Middleware\EnsureCustomerScannedQr;
 use App\Http\Middleware\EnsureCustomerApiToken;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'desktop' => EnsureDesktopDevice::class,
+            'barista.panel' => \App\Http\Middleware\EnsureUserIsBarista::class,
             'manager' => EnsureUserIsManager::class,
             'admin.panel' => EnsureUserCanAccessAdminPanel::class,
             'customer.qr' => EnsureCustomerScannedQr::class,
@@ -30,6 +32,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
         ]);
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('barista', 'barista/*')
+            ? route('login.barista')
+            : route('login.admin'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

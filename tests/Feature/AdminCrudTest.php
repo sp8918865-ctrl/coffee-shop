@@ -187,11 +187,16 @@ class AdminCrudTest extends TestCase
         $this->assertFalse(Hash::check('secret123', $user->fresh()->password_hash));
         $this->assertTrue(Hash::check('newsecret123', $user->fresh()->password_hash));
         $this->post(route('logout'));
-        $this->post(route('login.submit'), [
+        $this->post(route('login.barista.submit'), [
             'username' => 'ayu@example.test',
             'password' => 'newsecret123',
+        ])->assertRedirect(route('barista.dashboard'));
+        $this->get(route('barista.dashboard'))->assertOk();
+        $this->post(route('barista.logout'));
+        $this->post(route('login.admin.submit'), [
+            'username' => $manager->username,
+            'password' => 'password',
         ])->assertRedirect(route('admin.dashboard'));
-        $this->actingAs($manager);
 
         $this->post(route('admin.staf.store'), [
             'name' => 'Dewi Admin',
