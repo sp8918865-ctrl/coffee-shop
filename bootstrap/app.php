@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'desktop' => EnsureDesktopDevice::class,
             'barista.panel' => \App\Http\Middleware\EnsureUserIsBarista::class,
