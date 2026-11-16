@@ -13,9 +13,8 @@ FROM php:8.3-apache
 # Set environment variable composer superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Atasi konflik MPM Apache & ubah port default ke 8080 untuk Railway
-RUN a2dismod mpm_event mpm_worker && a2enmod mpm_prefork \
-    && sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
+# Ubah port default ke 8080 untuk Railway
+RUN sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
 
 # Install system dependencies, unzip, git, & zip extension
 RUN apt-get update \
@@ -57,4 +56,11 @@ RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --opt
 # Salin hasil build frontend dari stage 1
 COPY --from=frontend /app/public/build ./public/build
 
+# Bersihkan konflik MPM di akhir build dan siapkan entrypoint
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* \
+    && a2enmod mpm_prefork \
+    && chmod +x /var/www/html/docker-entrypoint.sh
+
 EXPOSE 8080
+
+ENTRYPOINT ["/var/www/html/docker-entrypoint.sh"]
