@@ -10,8 +10,12 @@ RUN npm run build
 # 2. PHP & Apache Production Stage
 FROM php:8.3-apache
 
-# Set environment variable composer superuser di dalam stage PHP
+# Set environment variable composer superuser
 ENV COMPOSER_ALLOW_SUPERUSER=1
+
+# Atasi konflik MPM Apache & ubah port default ke 8080 untuk Railway
+RUN a2dismod mpm_event mpm_worker && a2enmod mpm_prefork \
+    && sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
 
 # Install system dependencies, unzip, git, & zip extension
 RUN apt-get update \
@@ -25,11 +29,7 @@ RUN apt-get update \
     && docker-php-ext-install mbstring opcache pdo_pgsql xml zip \
     && rm -rf /var/lib/apt/lists/*
 
-# Atasi konflik MPM Apache & ubah port default ke 8080 untuk Railway
-RUN a2dismod mpm_event mpm_worker && a2enmod mpm_prefork \
-    && sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
-
-# Konfigurasi Apache untuk Laravel
+# Konfigurasi Apache untuk public folder Laravel
 RUN a2enmod rewrite headers \
     && sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
     && printf '%s\n' \
