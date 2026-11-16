@@ -25,7 +25,7 @@ class AdminCrudTest extends TestCase
         $this->get(route('admin.bahan'))->assertOk();
         $this->get(route('admin.staf'))->assertOk();
         $this->get(route('admin.pesanan'))->assertOk();
-        $this->get(route('admin.dashboard'))->assertOk();
+        $this->get(route('admin.dashboard'))->assertOk()->assertSee('Stok Bahan');
     }
 
     public function test_default_food_and_drink_categories_appear_in_menu_form(): void

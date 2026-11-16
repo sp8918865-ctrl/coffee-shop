@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Support\PanelRoute;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class MenuController extends Controller
@@ -36,6 +37,29 @@ class MenuController extends Controller
         return view('admin.data.menu', compact(
             'products', 'categories', 'totalProducts', 'availableProducts', 'unavailableProducts'
         ));
+    }
+
+    public function baristaIndex(): View
+    {
+        $products = Product::with('category')->orderBy('name')->get();
+
+        return view('barista.menu', compact('products'));
+    }
+
+    public function updateBaristaStock(Request $request, Product $product): RedirectResponse
+    {
+        $data = $request->validate([
+            'stok' => ['required', 'integer', 'min:0', 'max:2147483647'],
+        ]);
+
+        DB::transaction(function () use ($product, $data): void {
+            Product::whereKey($product->getKey())
+                ->lockForUpdate()
+                ->firstOrFail()
+                ->update(['stok' => $data['stok']]);
+        });
+
+        return redirect()->route(PanelRoute::name('admin.menu'))->with('success', 'Stok menu berhasil diperbarui.');
     }
 
     public function store(Request $request): RedirectResponse

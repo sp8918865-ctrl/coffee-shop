@@ -46,16 +46,16 @@ class AuthenticationTest extends TestCase
             ->assertSee('Dasbor & Pendapatan')
             ->assertSee('Kelola Menu')
             ->assertSee('Kelola Meja')
-            ->assertSee('Stok Bahan')
+            ->assertDontSee('Tambah Stok')
             ->assertSee('Pesanan')
             ->assertSee('QR Menu Publik')
             ->assertDontSee('Data Barista & Staf')
             ->assertSee('href="'.route('barista.pesanan').'"', false)
             ->assertSee('href="'.route('barista.menu').'"', false)
             ->assertSee('href="'.route('barista.tables').'"', false)
-            ->assertSee('href="'.route('barista.bahan').'"', false)
+            ->assertDontSee('href="/barista/bahan"', false)
             ->assertSee('href="'.route('barista.qr-menu').'"', false);
-        $this->get(route('barista.menu'))->assertOk();
+        $this->get(route('barista.menu'))->assertOk()->assertDontSee('Tambah menu baru');
         $this->get(route('barista.pesanan'))->assertOk();
         $this->get(route('admin.staf'))->assertRedirect(route('login.admin'));
         $this->post(route('admin.staf.store'), [

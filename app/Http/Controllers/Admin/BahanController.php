@@ -48,10 +48,18 @@ class BahanController extends Controller
             'minimum_quantity' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $data['status'] = $data['quantity'] <= 0
-            ? 'critical'
-            : ($data['quantity'] <= $data['minimum_quantity'] ? 'low' : 'available');
+        $data['status'] = $this->statusForQuantity((float) $data['quantity'], (float) $data['minimum_quantity']);
 
         return $data;
+    }
+
+    private function statusForQuantity(float $quantity, float $minimumQuantity): string
+    {
+        $quantityInThousandths = (int) round($quantity * 1000);
+        $minimumInThousandths = (int) round($minimumQuantity * 1000);
+
+        return $quantityInThousandths <= 0
+            ? 'critical'
+            : ($quantityInThousandths <= $minimumInThousandths ? 'low' : 'available');
     }
 }

@@ -21,10 +21,17 @@
                         ['label' => 'Dasbor & Pendapatan', 'route' => 'admin.dashboard', 'icon' => 'layout-dashboard'],
                         ['label' => 'Kelola Menu', 'route' => 'admin.menu', 'icon' => 'coffee'],
                         ['label' => 'Kelola Meja', 'route' => 'admin.tables', 'icon' => 'armchair'],
-                        ['label' => 'Stok Bahan', 'route' => 'admin.bahan', 'icon' => 'shopping-bag'],
                         ['label' => 'Pesanan', 'route' => 'admin.pesanan', 'icon' => 'receipt'],
                         ['label' => 'QR Menu Publik', 'route' => 'admin.qr-menu', 'icon' => 'qr-code'],
                     ];
+
+                    if (auth()->user()?->role !== 'barista') {
+                        array_splice($adminMenu, 3, 0, [[
+                            'label' => 'Stok Bahan',
+                            'route' => 'admin.bahan',
+                            'icon' => 'shopping-bag',
+                        ]]);
+                    }
 
                     if (auth()->user()?->role !== 'barista') {
                         $adminMenu[] = ['label' => 'Data Barista & Staf', 'route' => 'admin.staf', 'icon' => 'users'];

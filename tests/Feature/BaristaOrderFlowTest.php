@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -13,6 +14,62 @@ use Tests\TestCase;
 class BaristaOrderFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_barista_can_edit_product_stock_without_editing_other_menu_fields(): void
+    {
+        $barista = User::factory()->create(['role' => 'barista']);
+        $product = Product::create([
+            'name' => 'Kopi Susu',
+            'stok' => 6,
+            'price' => 18000,
+            'is_available' => true,
+        ]);
+
+        $this->actingAs($barista, 'barista')
+            ->get(route('barista.dashboard'))
+            ->assertOk()
+            ->assertDontSee('Tambah Stok')
+            ->assertDontSee('Stok Bahan');
+
+        $this->get('/barista/bahan')->assertNotFound();
+
+        $this->get(route('barista.menu'))
+            ->assertOk()
+            ->assertSee('Kopi Susu')
+            ->assertSee('Rp 18.000')
+            ->assertSee('Ubah Stok')
+            ->assertDontSee('Tambah menu baru')
+            ->assertDontSee('Simpan perubahan');
+
+        $this->patch(route('barista.menu.stock', $product), [
+            'stok' => 12,
+            'name' => 'Nama Diubah',
+            'price' => 1,
+            'is_available' => false,
+        ])->assertRedirect(route('barista.menu'));
+
+        $this->assertDatabaseHas('products', [
+            'product_id' => $product->product_id,
+            'name' => 'Kopi Susu',
+            'stok' => 12,
+            'price' => 18000,
+            'is_available' => true,
+        ]);
+
+        $this->from(route('barista.menu'))
+            ->patch(route('barista.menu.stock', $product), ['stok' => -1])
+            ->assertSessionHasErrors('stok');
+        $this->assertDatabaseHas('products', [
+            'product_id' => $product->product_id,
+            'stok' => 12,
+        ]);
+
+        $this->post('/barista/menu')->assertStatus(405);
+        $this->put('/barista/menu/1')->assertNotFound();
+        $this->delete('/barista/menu/1')->assertNotFound();
+        $this->post('/barista/kategori')->assertNotFound();
+        $this->delete('/barista/kategori/1')->assertNotFound();
+    }
 
     public function test_barista_can_use_the_shared_order_panel_and_update_order_status(): void
     {
