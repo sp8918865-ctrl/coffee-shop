@@ -1,3 +1,4 @@
+ENV COMPOSER_ALLOW_SUPERUSER=1
 FROM node:22-alpine AS frontend
 
 WORKDIR /app
