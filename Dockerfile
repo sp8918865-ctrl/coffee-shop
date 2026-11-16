@@ -46,3 +46,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint
 EXPOSE 8080
 
 CMD ["docker-entrypoint"]
+
+RUN apt-get update && apt-get install -y \
+    unzip \
+    git \
+    libzip-dev \
+    && docker-php-ext-install zip
