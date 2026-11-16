@@ -78,4 +78,3 @@ Setelah memperbarui aplikasi, jalankan:
 php artisan migrate
 ```
 
-Sanctum menyimpan token admin yang sudah di-hash. Token QR pelanggan juga disimpan dalam bentuk hash dan kedaluwarsa otomatis setelah 12 jam.
