@@ -1,0 +1,20 @@
+[33m6556a1c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m api
+[33m18db100[m readme
+[33m8f21672[m https://github.com/sp8918865-ctrl/coffee-shop.git
+[33m3841898[m Improve sales reports and cash receipt workflow
+[33mc82d994[m Update admin and barista workflows
+[33me74e974[m Improve coffee shop ordering and operations
+[33m48abb8c[m Add staff roles and integer stock
+[33m6c26628[m Complete public ordering and ERD schema
+[33m3f2d88d[m Add database-backed Warung Luwak admin
+[33m3ec2003[m Memperbaiki tombol aksi dan navigasi pagination pada katalog menu
+[33m79db4db[m Memperbarui tampilan Dasbor & Pendapatan sesuai desain terbaru
+[33m56d3c14[m Menambahkan halaman Data Barista & Staf Operasional
+[33mf0255f9[m Menambahkan halaman Kanban Board Pesanan Diterima
+[33m91ca050[m Memperbarui tampilan Daftar Belanja Bahan Baku
+[33m02d35dc[m Memperbarui tampilan katalog menu dengan modal tambah menu
+[33m3567b3f[m Menambahkan halaman Katalog Menu dan Ketersediaan Stok
+[33mdfdefc9[m proyek Warung Luwak
+[33mfd85a41[m Add Bootstrap master layout and home view
+[33m573a80e[m Update fitur proyek
+[33m5a5f8e3[m Update fitur proyek
