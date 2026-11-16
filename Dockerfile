@@ -13,7 +13,7 @@ FROM php:8.3-apache
 # Set environment variable composer superuser di dalam stage PHP
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Install system dependencies, unzip, git, & zip extension (HARUS SEBELUM composer install)
+# Install system dependencies, unzip, git, & zip extension
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libonig-dev \
@@ -24,6 +24,10 @@ RUN apt-get update \
         libzip-dev \
     && docker-php-ext-install mbstring opcache pdo_pgsql xml zip \
     && rm -rf /var/lib/apt/lists/*
+
+# Atasi konflik MPM Apache & ubah port default ke 8080 untuk Railway
+RUN a2dismod mpm_event mpm_worker && a2enmod mpm_prefork \
+    && sed -i 's/80/8080/g' /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf
 
 # Konfigurasi Apache untuk Laravel
 RUN a2enmod rewrite headers \
@@ -43,7 +47,7 @@ WORKDIR /var/www/html
 # Salin seluruh file proyek
 COPY . .
 
-# Jalankan composer install (sekarang ekstensi zip dan unzip sudah tersedia)
+# Jalankan composer install
 RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader --no-scripts \
     && composer dump-autoload --no-dev --optimize --no-scripts \
     && php artisan package:discover --ansi \
@@ -53,10 +57,4 @@ RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --opt
 # Salin hasil build frontend dari stage 1
 COPY --from=frontend /app/public/build ./public/build
 
-# Konfigurasi Entrypoint (Opsional, pastikan file filenya ada jika ingin dipakai)
-# COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint
-# RUN chmod +x /usr/local/bin/docker-entrypoint
-
 EXPOSE 8080
-
-# CMD ["docker-entrypoint"]
