@@ -82,7 +82,7 @@
         <section class="mt-4 rounded-2xl border border-white/[0.07] bg-[#191c22] p-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-xs font-extrabold text-white">Bon pembayaran</h2>
-                <span class="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-[8px] font-bold uppercase text-amber-200">Belum dibayar</span>
+                <span class="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-[8px] font-bold uppercase text-amber-200">{{ $payment->payment_status === 'paid' ? 'Lunas' : 'Belum dibayar' }}</span>
             </div>
             <p class="mt-2 text-[9px] text-slate-500">No. bon {{ $order->order_number }} · {{ $order->created_at->format('d M Y · H:i') }}</p>
             @if ($order->customer_name)
@@ -90,6 +90,9 @@
             @endif
             @if ($payment->payment_method === 'cash')
                 <div class="mt-3 flex justify-between gap-3 rounded-xl bg-[#101319] p-3 text-[10px]"><span class="text-slate-400">Metode pembayaran</span><span class="font-semibold text-white">Tunai · menunggu konfirmasi staf</span></div>
+            @endif
+            @if ($payment->payment_method === 'transfer')
+                <div class="mt-3 flex justify-between gap-3 rounded-xl bg-[#101319] p-3 text-[10px]"><span class="text-slate-400">Metode pembayaran</span><span class="font-semibold text-white">Transfer bank · {{ $payment->payment_status === 'paid' ? 'terkonfirmasi' : 'menunggu konfirmasi staf' }}</span></div>
             @endif
             @if ($payment->payment_method === 'qris')
                 <div class="mt-3 rounded-xl border border-dashed border-amber-300/20 bg-[#101319] p-4 text-center">
@@ -103,8 +106,10 @@
                     <p class="mt-3 text-[10px] font-black tracking-widest text-amber-300">QRIS SIMULASI</p>
                     <p class="mt-1 text-[9px] leading-relaxed text-slate-500">Ini bukan kode QR pembayaran aktif. Pembayaran belum diproses dan tidak ada tagihan sungguhan.</p>
                 </div>
-            @else
+            @elseif ($payment->payment_method === 'cash')
                 <p class="mt-3 rounded-xl bg-[#101319] p-3 text-[10px] leading-relaxed text-slate-400">Silakan serahkan uang tunai kepada staf kedai. Bon ini merupakan rincian pesanan; pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
+            @elseif ($payment->payment_method === 'transfer')
+                <p class="mt-3 rounded-xl bg-[#101319] p-3 text-[10px] leading-relaxed text-slate-400">Silakan minta detail rekening kepada staf kedai dan lakukan transfer sesuai total pesanan. Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
             @endif
             <button type="button" onclick="window.print()" class="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-semibold text-amber-200 print:hidden">
                 <i data-lucide="printer" class="h-4 w-4"></i> Cetak bon

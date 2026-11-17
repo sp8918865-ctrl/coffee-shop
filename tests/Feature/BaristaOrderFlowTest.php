@@ -363,4 +363,44 @@ class BaristaOrderFlowTest extends TestCase
             'processed_by_user_id' => $barista->user_id,
         ]);
     }
+
+    public function test_barista_can_confirm_a_transfer_payment_without_cash_details(): void
+    {
+        $barista = User::factory()->create(['role' => 'barista']);
+        $order = Order::create([
+            'order_number' => 'ORD-TRANSFER-001',
+            'order_type' => 'take_away',
+            'order_status' => 'pending',
+            'total_amount' => 18000,
+        ]);
+        Payment::create([
+            'order_id' => $order->order_id,
+            'payment_method' => 'transfer',
+            'amount' => 18000,
+            'payment_status' => 'pending',
+        ]);
+
+        $this->actingAs($barista, 'barista')
+            ->get(route('barista.pesanan'))
+            ->assertOk()
+            ->assertSee('Transfer bank')
+            ->assertSee('Konfirmasi transfer masuk')
+            ->assertDontSee('Uang dari pelanggan');
+
+        $this->post(route('barista.pesanan.transfer-payment', $order))
+            ->assertRedirect(route('barista.pesanan'))
+            ->assertSessionHas('success', 'Pembayaran transfer dikonfirmasi.');
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->order_id,
+            'payment_method' => 'transfer',
+            'payment_status' => 'paid',
+            'processed_by_user_id' => $barista->user_id,
+        ]);
+        $this->get(route('barista.pesanan.receipt', $order))
+            ->assertOk()
+            ->assertSee('Transfer bank')
+            ->assertSee('Lunas')
+            ->assertDontSee('Uang diterima');
+    }
 }

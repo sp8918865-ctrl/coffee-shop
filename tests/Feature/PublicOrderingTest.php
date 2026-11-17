@@ -36,6 +36,7 @@ class PublicOrderingTest extends TestCase
             ->assertSee('Kopi Susu')
             ->assertSee('QRIS simulasi')
             ->assertSee('Bayar tunai di kedai')
+            ->assertSee('Transfer bank')
             ->assertSee('Rp 18.000')
             ->assertDontSee('cash_received')
             ->assertDontSee('Nominal uang tunai yang disiapkan')
@@ -173,6 +174,31 @@ class PublicOrderingTest extends TestCase
             ->assertSessionHasErrors(['customer_name', 'table_id', 'payment_method']);
 
         $this->assertDatabaseCount('orders', 1);
+    }
+
+    public function test_guest_can_place_a_transfer_order_that_waits_for_staff_confirmation(): void
+    {
+        $this->scanQr();
+        $product = $this->product();
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
+
+        $this->post(route('checkout.place'), [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'transfer',
+        ])->assertRedirect();
+
+        $order = Order::with('payments')->firstOrFail();
+        $payment = $order->payments->first();
+
+        $this->assertSame('transfer', $payment->payment_method);
+        $this->assertSame('pending', $payment->payment_status);
+        $this->assertNull($payment->payment_gateway_ref);
+        $this->get(route('orders.track', $order->public_tracking_token))
+            ->assertOk()
+            ->assertSee('Transfer bank')
+            ->assertSee('minta detail rekening kepada staf kedai')
+            ->assertSee('Belum dibayar');
     }
 
     public function test_order_is_not_retrievable_by_sequential_id_or_another_token(): void

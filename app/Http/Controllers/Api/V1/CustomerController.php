@@ -66,7 +66,7 @@ class CustomerController extends Controller
                 'required_if:order_type,dine_in',
                 Rule::exists('tables', 'table_id')->where('status', 'available'),
             ],
-            'payment_method' => ['required', Rule::in(['qris', 'cash'])],
+            'payment_method' => ['required', Rule::in(['qris', 'cash', 'transfer'])],
             'notes' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['required', 'integer', 'distinct', 'exists:products,product_id'],

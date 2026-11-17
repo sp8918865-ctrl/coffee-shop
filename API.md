@@ -30,7 +30,7 @@ Contoh membuat pesanan:
 }
 ```
 
-`order_type` menerima `dine_in` atau `take_away`; pesanan `dine_in` memerlukan `table_id` dari `/customer/tables`. `payment_method` menerima `cash` atau `qris`. Harga dihitung dari database, bukan dari nilai yang dikirim klien. Respons `201` berisi `tracking_token` untuk memeriksa status pesanan.
+`order_type` menerima `dine_in` atau `take_away`; pesanan `dine_in` memerlukan `table_id` dari `/customer/tables`. `payment_method` menerima `cash`, `qris`, atau `transfer`. Pembayaran transfer dicatat sebagai menunggu dan dikonfirmasi manual oleh staf. Harga dihitung dari database, bukan dari nilai yang dikirim klien. Respons `201` berisi `tracking_token` untuk memeriksa status pesanan.
 
 ## Akses admin
 

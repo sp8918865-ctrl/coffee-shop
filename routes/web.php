@@ -129,6 +129,7 @@ $registerPanelRoutes = function (string $prefix, string $guard, string $accessMi
             Route::get('/pesanan', [PesananController::class, 'index'])->name('pesanan');
             Route::get('/pesanan/{order}/bon', [PesananController::class, 'receipt'])->name('pesanan.receipt');
             Route::post('/pesanan/{order}/bon/pembayaran-tunai', [PesananController::class, 'recordCashPayment'])->name('pesanan.cash-payment');
+            Route::post('/pesanan/{order}/bon/pembayaran-transfer', [PesananController::class, 'recordTransferPayment'])->name('pesanan.transfer-payment');
             Route::post('/pesanan', [PesananController::class, 'store'])->name('pesanan.store');
             Route::patch('/pesanan/{order}/status', [PesananController::class, 'updateStatus'])->name('pesanan.status');
             Route::delete('/pesanan/{order}', [PesananController::class, 'destroy'])->name('pesanan.destroy');

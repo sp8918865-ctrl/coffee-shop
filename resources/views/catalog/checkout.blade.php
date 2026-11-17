@@ -86,7 +86,7 @@
             </fieldset>
 
             <fieldset>
-                <legend class="text-[10px] font-semibold text-slate-300">Metode pembayaran <span class="font-normal text-slate-500">· DEMO</span></legend>
+                <legend class="text-[10px] font-semibold text-slate-300">Metode pembayaran</legend>
                 <div class="mt-2 space-y-2">
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#101319] p-3 has-[:checked]:border-amber-300/60 has-[:checked]:bg-amber-300/[0.08]">
                         <input type="radio" name="payment_method" value="qris" @checked(old('payment_method', 'qris') === 'qris') class="mt-0.5 accent-amber-300">
@@ -97,12 +97,19 @@
                         <input type="radio" name="payment_method" value="cash" @checked(old('payment_method') === 'cash') class="mt-0.5 accent-amber-300">
                         <span><strong class="block text-xs text-white">Bayar tunai di kedai</strong><span class="mt-1 block text-[9px] text-slate-500">Belum dibayar online.</span></span>
                     </label>
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#101319] p-3 has-[:checked]:border-amber-300/60 has-[:checked]:bg-amber-300/[0.08]">
+                        <input type="radio" name="payment_method" value="transfer" @checked(old('payment_method') === 'transfer') class="mt-0.5 accent-amber-300">
+                        <span><strong class="block text-xs text-white">Transfer bank</strong><span class="mt-1 block text-[9px] text-slate-500">Konfirmasi pembayaran dilakukan staf.</span></span>
+                    </label>
                 </div>
                 @error('payment_method')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
             </fieldset>
 
             <div id="cash-payment-note" @if (old('payment_method', 'qris') !== 'cash') hidden @endif class="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-3">
                 <p class="text-[10px] leading-relaxed text-slate-400">Pembayaran tunai dilakukan di kedai. Staf akan mengonfirmasi pembayaran saat pesanan dibayar.</p>
+            </div>
+            <div id="transfer-payment-note" @if (old('payment_method') !== 'transfer') hidden @endif class="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-3">
+                <p class="text-[10px] leading-relaxed text-slate-400">Silakan minta detail rekening kepada staf kedai. Pembayaran akan dikonfirmasi setelah transfer diterima.</p>
             </div>
 
             <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-950/20 transition hover:bg-amber-200">
@@ -117,10 +124,12 @@
 <script>
     const checkoutForm = document.getElementById('checkout-form');
     const cashNote = document.getElementById('cash-payment-note');
+    const transferNote = document.getElementById('transfer-payment-note');
 
-    function syncCashPayment() {
-        const isCash = document.querySelector('input[name="payment_method"]:checked')?.value === 'cash';
-        cashNote.hidden = !isCash;
+    function syncPaymentNotes() {
+        const method = document.querySelector('input[name="payment_method"]:checked')?.value;
+        cashNote.hidden = method !== 'cash';
+        transferNote.hidden = method !== 'transfer';
     }
 
     const tableField = document.getElementById('table-field');
@@ -131,8 +140,8 @@
         tableInput.required = dineIn;
     }
     document.querySelectorAll('input[name="order_type"]').forEach(input => input.addEventListener('change', syncOrderType));
-    document.querySelectorAll('input[name="payment_method"]').forEach(input => input.addEventListener('change', syncCashPayment));
+    document.querySelectorAll('input[name="payment_method"]').forEach(input => input.addEventListener('change', syncPaymentNotes));
     syncOrderType();
-    syncCashPayment();
+    syncPaymentNotes();
 </script>
 @endpush

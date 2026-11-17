@@ -109,6 +109,35 @@ class PesananController extends Controller
             ->with('success', 'Pembayaran tunai dicatat. Kembalian sudah dihitung; bon siap dicetak.');
     }
 
+    public function recordTransferPayment(Request $request, Order $order): RedirectResponse|JsonResponse
+    {
+        DB::transaction(function () use ($order, $request): void {
+            $lockedOrder = Order::whereKey($order->order_id)->lockForUpdate()->firstOrFail();
+            $payment = $lockedOrder->payments()->latest('payment_id')->lockForUpdate()->first();
+
+            if (! $payment || $payment->payment_method !== 'transfer') {
+                throw ValidationException::withMessages([
+                    'payment_method' => 'Konfirmasi hanya dapat dilakukan untuk pembayaran transfer.',
+                ]);
+            }
+
+            $payment->fill([
+                'processed_by_user_id' => $request->user()?->user_id,
+                'amount' => $lockedOrder->total_amount,
+                'payment_status' => 'paid',
+                'paid_at' => now(),
+            ]);
+            $payment->save();
+        });
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Pembayaran transfer dikonfirmasi.']);
+        }
+
+        return redirect()->route(PanelRoute::name('admin.pesanan'))
+            ->with('success', 'Pembayaran transfer dikonfirmasi.');
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([

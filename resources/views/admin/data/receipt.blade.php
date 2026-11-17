@@ -76,7 +76,7 @@
     @endif
     <div class="row">
         <span>Metode</span>
-        <span>{{ $paymentMethod === 'qris' ? 'QRIS' : 'Tunai' }}</span>
+        <span>{{ ['qris' => 'QRIS', 'transfer' => 'Transfer bank', 'cash' => 'Tunai'][$paymentMethod] ?? $paymentMethod }}</span>
     </div>
     @if ($payment)
         <div class="row">

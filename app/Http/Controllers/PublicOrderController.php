@@ -97,7 +97,7 @@ class PublicOrderController extends Controller
                 'required_if:order_type,dine_in',
                 Rule::exists('tables', 'table_id')->where('status', 'available'),
             ],
-            'payment_method' => ['required', 'in:qris,cash'],
+            'payment_method' => ['required', 'in:qris,cash,transfer'],
         ]);
         $items = $this->cartProducts($request);
         $cart = $request->session()->get(self::CART_KEY, []);

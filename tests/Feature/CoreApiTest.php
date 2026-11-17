@@ -167,6 +167,27 @@ class CoreApiTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
     }
 
+    public function test_customer_api_accepts_transfer_payment_method(): void
+    {
+        $product = Product::create([
+            'name' => 'Teh',
+            'stok' => 2,
+            'price' => 12000,
+            'is_available' => true,
+        ]);
+        $token = $this->getJson(URL::signedRoute('api.v1.customer.qr-access', absolute: false))
+            ->json('data.token');
+
+        $this->withToken($token)->postJson('/api/v1/customer/orders', [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'transfer',
+            'items' => [['product_id' => $product->product_id, 'quantity' => 1]],
+        ])->assertCreated()
+            ->assertJsonPath('data.payment.0.method', 'transfer')
+            ->assertJsonPath('data.payment.0.status', 'pending');
+    }
+
     public function test_admin_api_can_manage_products_categories_ingredients_and_tables(): void
     {
         $admin = User::factory()->create([
