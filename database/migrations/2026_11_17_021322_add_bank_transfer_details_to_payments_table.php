@@ -20,10 +20,11 @@ return new class extends Migration
     {
         Schema::table('payments', function (Blueprint $table) {
             $table->dropColumn([
-                'nomor_rekening',
-                'nama_bank',
-                'nama_pemilik_rekening',
-                'bukti_pembayaran',
+                `nomor_rekening`,
+                `nama_bank`,
+                `nama-pemilik_rekening`,
+                `bukti_pembayaran`,
+                
             ]);
         });
     }
