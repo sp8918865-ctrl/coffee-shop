@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -35,9 +36,33 @@ class DashboardSalesTest extends TestCase
             ->assertSee('Tahun ini')
             ->assertSee('Rp 20.000')
             ->assertSee('Rp 50.000')
-            ->assertSee('Rp 90.000')
-            ->assertDontSee('Minuman terlaris')
-            ->assertDontSee('Pesanan terbaru');
+            ->assertSee('Rp 90.000');
+    }
+
+    public function test_admin_dashboard_shows_daily_sales_and_best_selling_menus(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'owner']));
+
+        $todayOrder = $this->recordOrder('SLS-CHART-TODAY', 'completed', now(), 18000);
+        $olderOrder = $this->recordOrder('SLS-CHART-OLDER', 'completed', now()->subDays(2), 10000);
+        $pendingOrder = $this->recordOrder('SLS-CHART-PENDING', 'pending', now(), 50000);
+        $oldOrder = $this->recordOrder('SLS-CHART-OLD', 'completed', now()->subDays(31), 25000);
+
+        $this->recordOrderItem($todayOrder, 'Kopi Susu', 2, 18000);
+        $this->recordOrderItem($olderOrder, 'Espresso', 1, 10000);
+        $this->recordOrderItem($pendingOrder, 'Menu Belum Selesai', 5, 50000);
+        $this->recordOrderItem($oldOrder, 'Menu Lama', 1, 25000);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Penjualan harian (7 hari terakhir)')
+            ->assertSee('Menu terlaris (30 hari terakhir)')
+            ->assertSee('Kopi Susu')
+            ->assertSee('2 terjual')
+            ->assertSee('Rp 18.000')
+            ->assertSee('Espresso')
+            ->assertDontSee('Menu Belum Selesai')
+            ->assertDontSee('Menu Lama');
     }
 
     public function test_barista_dashboard_hides_sales_period_summaries(): void
@@ -49,7 +74,9 @@ class DashboardSalesTest extends TestCase
             ->assertDontSee('Ringkasan penjualan')
             ->assertDontSee('7 hari terakhir')
             ->assertDontSee('Bulan ini')
-            ->assertDontSee('Tahun ini');
+            ->assertDontSee('Tahun ini')
+            ->assertDontSee('Penjualan harian (7 hari terakhir)')
+            ->assertDontSee('Menu terlaris (30 hari terakhir)');
     }
 
     public function test_admin_can_print_sales_report_with_timestamp_components(): void
@@ -88,9 +115,9 @@ class DashboardSalesTest extends TestCase
             ->assertRedirect(route('login.admin'));
     }
 
-    private function recordOrder(string $number, string $status, \Illuminate\Support\Carbon $createdAt, int $total): void
+    private function recordOrder(string $number, string $status, \Illuminate\Support\Carbon $createdAt, int $total): Order
     {
-        Order::create([
+        return Order::create([
             'order_number' => $number,
             'order_type' => 'take_away',
             'order_status' => $status,
@@ -98,6 +125,17 @@ class DashboardSalesTest extends TestCase
             'total_amount' => $total,
             'created_at' => $createdAt,
             'updated_at' => $createdAt,
+        ]);
+    }
+
+    private function recordOrderItem(Order $order, string $productName, int $quantity, int $subtotal): void
+    {
+        OrderItem::create([
+            'order_id' => $order->order_id,
+            'product_name' => $productName,
+            'quantity' => $quantity,
+            'unit_price' => $subtotal / $quantity,
+            'subtotal' => $subtotal,
         ]);
     }
 }

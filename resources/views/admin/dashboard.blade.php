@@ -63,6 +63,51 @@
                 </article>
             @endforeach
         </div>
+
+        <div class="grid gap-4 xl:grid-cols-2">
+            <section class="rounded-xl border border-[#1e293b] bg-[#121824] p-4">
+                <div class="mb-4">
+                    <h3 class="font-bold text-white">Penjualan harian (7 hari terakhir)</h3>
+                    <p class="text-xs text-slate-400">Berdasarkan pesanan berstatus selesai.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <div class="grid min-w-[560px] grid-cols-7 gap-3">
+                        @foreach ($dailySales as $day)
+                            <div class="text-center">
+                                <div class="flex h-36 items-end rounded-lg bg-[#0b0f17] p-1">
+                                    <div
+                                        class="w-full rounded-t bg-gradient-to-t from-amber-700 to-amber-400"
+                                        style="height: {{ $dailySalesMax > 0 ? max(6, ($day['amount'] / $dailySalesMax) * 100) : 0 }}%"
+                                        role="img"
+                                        aria-label="{{ $day['label'] }}: Rp {{ number_format($day['amount'], 0, ',', '.') }}"
+                                    ></div>
+                                </div>
+                                <p class="mt-2 text-[10px] text-slate-400">{{ $day['label'] }}</p>
+                                <p class="mt-1 text-[10px] font-semibold text-white">Rp {{ number_format($day['amount'], 0, ',', '.') }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-xl border border-[#1e293b] bg-[#121824] p-4">
+                <div class="mb-4">
+                    <h3 class="font-bold text-white">Menu terlaris (30 hari terakhir)</h3>
+                    <p class="text-xs text-slate-400">Diurutkan berdasarkan jumlah yang terjual.</p>
+                </div>
+                @forelse ($bestSellingMenus as $menu)
+                    <div class="flex items-center justify-between gap-3 border-t border-[#1e293b] py-3 first:border-t-0">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-white">{{ $menu->product_name }}</p>
+                            <p class="text-xs text-slate-400">{{ number_format($menu->sold_quantity) }} terjual</p>
+                        </div>
+                        <p class="whitespace-nowrap text-xs font-semibold text-amber-400">Rp {{ number_format($menu->sales_amount, 0, ',', '.') }}</p>
+                    </div>
+                @empty
+                    <p class="border-t border-[#1e293b] py-4 text-sm text-slate-400">Belum ada menu terjual dalam 30 hari terakhir.</p>
+                @endforelse
+            </section>
+        </div>
     </section>
 @endif
 @endsection
