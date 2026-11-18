@@ -109,14 +109,21 @@
                 <p class="text-[10px] leading-relaxed text-slate-400">Pembayaran tunai dilakukan di kedai. Staf akan mengonfirmasi pembayaran saat pesanan dibayar.</p>
             </div>
             <div id="transfer-payment-note" @if (old('payment_method') !== 'transfer') hidden @endif class="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-3">
-                <label for="bank_pengirim" class="text-[10px] font-semibold text-slate-300">Pilih bank yang kamu gunakan</label>
-                <select id="bank_pengirim" name="bank_pengirim" class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#101319] px-3 py-3 text-sm text-white focus:border-amber-300 focus:outline-none">
-                    <option value="">Pilih bank</option>
-                    @foreach (\App\Support\IndonesianBanks::OPTIONS as $bank)
-                        <option value="{{ $bank }}" @selected(old('bank_pengirim') === $bank)>{{ $bank }}</option>
+                <p class="text-[10px] font-semibold text-slate-300">Pilih bank yang kamu gunakan</p>
+                <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    @foreach (\App\Support\IndonesianBanks::visualOptions() as $bank)
+                        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#101319] p-2.5 transition hover:border-amber-300/40 has-[:checked]:border-amber-300/70 has-[:checked]:bg-amber-300/[0.08]">
+                            <input type="radio" name="bank_pengirim" value="{{ $bank['name'] }}" @checked(old('bank_pengirim') === $bank['name']) class="sr-only">
+                            <span class="grid h-9 w-11 shrink-0 place-items-center rounded-lg px-1 text-[9px] font-black tracking-tight" style="background-color: {{ $bank['background'] }}; color: {{ $bank['foreground'] }}">{{ $bank['mark'] }}</span>
+                            <span class="text-[10px] font-semibold leading-tight text-white">{{ $bank['name'] }}</span>
+                        </label>
                     @endforeach
-                    <option value="{{ \App\Support\IndonesianBanks::OTHER }}" @selected(old('bank_pengirim') === \App\Support\IndonesianBanks::OTHER)>Bank lainnya</option>
-                </select>
+                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#101319] p-2.5 transition hover:border-amber-300/40 has-[:checked]:border-amber-300/70 has-[:checked]:bg-amber-300/[0.08]">
+                        <input type="radio" name="bank_pengirim" value="{{ \App\Support\IndonesianBanks::OTHER }}" @checked(old('bank_pengirim') === \App\Support\IndonesianBanks::OTHER) class="sr-only">
+                        <span class="grid h-9 w-11 shrink-0 place-items-center rounded-lg bg-slate-700 text-[10px] font-black text-white">LAIN</span>
+                        <span class="text-[10px] font-semibold leading-tight text-white">Bank lainnya</span>
+                    </label>
+                </div>
                 @error('bank_pengirim')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
                 <div id="other-bank-field" @if (old('bank_pengirim') !== \App\Support\IndonesianBanks::OTHER) hidden @endif class="mt-3">
                     <label for="bank_pengirim_lainnya" class="text-[10px] font-semibold text-slate-300">Nama bank</label>
@@ -139,17 +146,18 @@
     const checkoutForm = document.getElementById('checkout-form');
     const cashNote = document.getElementById('cash-payment-note');
     const transferNote = document.getElementById('transfer-payment-note');
-    const senderBank = document.getElementById('bank_pengirim');
+    const senderBanks = document.querySelectorAll('input[name="bank_pengirim"]');
     const otherBankField = document.getElementById('other-bank-field');
     const otherBankInput = document.getElementById('bank_pengirim_lainnya');
 
     function syncPaymentNotes() {
         const method = document.querySelector('input[name="payment_method"]:checked')?.value;
+        const selectedBank = document.querySelector('input[name="bank_pengirim"]:checked')?.value;
         cashNote.hidden = method !== 'cash';
         transferNote.hidden = method !== 'transfer';
-        senderBank.required = method === 'transfer';
-        otherBankField.hidden = method !== 'transfer' || senderBank.value !== '{{ \App\Support\IndonesianBanks::OTHER }}';
-        otherBankInput.required = method === 'transfer' && senderBank.value === '{{ \App\Support\IndonesianBanks::OTHER }}';
+        senderBanks.forEach(input => input.required = method === 'transfer');
+        otherBankField.hidden = method !== 'transfer' || selectedBank !== '{{ \App\Support\IndonesianBanks::OTHER }}';
+        otherBankInput.required = method === 'transfer' && selectedBank === '{{ \App\Support\IndonesianBanks::OTHER }}';
     }
 
     const tableField = document.getElementById('table-field');
@@ -161,7 +169,7 @@
     }
     document.querySelectorAll('input[name="order_type"]').forEach(input => input.addEventListener('change', syncOrderType));
     document.querySelectorAll('input[name="payment_method"]').forEach(input => input.addEventListener('change', syncPaymentNotes));
-    senderBank.addEventListener('change', syncPaymentNotes);
+    senderBanks.forEach(input => input.addEventListener('change', syncPaymentNotes));
     syncOrderType();
     syncPaymentNotes();
 </script>
