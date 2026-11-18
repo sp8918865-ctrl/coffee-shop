@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\DiningTable;
 use App\Models\Product;
+use App\Models\AppSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -83,6 +84,7 @@ class PublicOrderController extends Controller
             'items' => $items,
             'total' => $items->sum(fn (Product $product) => $product->price * $product->cart_quantity),
             'tables' => DiningTable::where('status', 'available')->orderBy('table_number')->get(),
+            'transferDetails' => AppSetting::bankTransferDetails(),
         ]);
     }
 
@@ -101,6 +103,13 @@ class PublicOrderController extends Controller
         ]);
         $items = $this->cartProducts($request);
         $cart = $request->session()->get(self::CART_KEY, []);
+        $transferDetails = AppSetting::bankTransferDetails();
+        if ($data['payment_method'] === 'transfer' && ! $transferDetails['configured']) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Pembayaran transfer belum tersedia. Silakan pilih metode lain atau hubungi staf kedai.',
+            ]);
+        }
+
         if (! is_array($cart) || $items->count() !== count($cart)) {
             return redirect()->route('catalog.index')->with('error', 'Ada menu yang sudah tidak tersedia. Periksa kembali keranjang Anda.');
         }
@@ -110,7 +119,7 @@ class PublicOrderController extends Controller
 
         $total = $items->sum(fn (Product $product) => $product->price * $product->cart_quantity);
 
-        $order = DB::transaction(function () use ($data, $items, $total): Order {
+        $order = DB::transaction(function () use ($data, $items, $total, $transferDetails): Order {
             $table = null;
             if ($data['order_type'] === 'dine_in') {
                 $table = DiningTable::whereKey($data['table_id'])
@@ -162,6 +171,9 @@ class PublicOrderController extends Controller
                 'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
                 'amount' => $total,
                 'payment_status' => 'pending',
+                'nama_bank' => $data['payment_method'] === 'transfer' ? $transferDetails['bank_name'] : null,
+                'nomor_rekening' => $data['payment_method'] === 'transfer' ? $transferDetails['account_number'] : null,
+                'nama_pemilik_rekening' => $data['payment_method'] === 'transfer' ? $transferDetails['account_holder'] : null,
             ]);
 
             if ($table) {
@@ -182,8 +194,9 @@ class PublicOrderController extends Controller
         $order = Order::with(['items', 'payments'])
             ->where('public_tracking_token', $token)
             ->firstOrFail();
+        $transferDetails = AppSetting::bankTransferDetails();
 
-        return response()->view('catalog.track', compact('order'))
+        return response()->view('catalog.track', compact('order', 'transferDetails'))
             ->header('Cache-Control', 'private, no-store');
     }
 

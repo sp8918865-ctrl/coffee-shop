@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BahanController;
+use App\Http\Controllers\Admin\BankTransferSettingsController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DiningTableController;
 use App\Http\Controllers\Admin\MenuController;
@@ -111,6 +112,8 @@ $registerPanelRoutes = function (string $prefix, string $guard, string $accessMi
             Route::post('/qr-menu/toggle', [PublicQrController::class, 'toggle'])->name('qr-menu.toggle');
             Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
             if ($includeStaff) {
+                Route::get('/rekening-transfer', [BankTransferSettingsController::class, 'index'])->name('bank-transfer');
+                Route::put('/rekening-transfer', [BankTransferSettingsController::class, 'update'])->name('bank-transfer.update');
                 Route::get('/menu', [MenuController::class, 'index'])->name('menu');
                 Route::post('/menu', [MenuController::class, 'store'])->name('menu.store');
                 Route::put('/menu/{product}', [MenuController::class, 'update'])->name('menu.update');

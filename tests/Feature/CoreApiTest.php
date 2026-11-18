@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\AppSetting;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -169,6 +170,11 @@ class CoreApiTest extends TestCase
 
     public function test_customer_api_accepts_transfer_payment_method(): void
     {
+        AppSetting::setBankTransferDetails([
+            'bank_name' => 'BCA',
+            'account_number' => '1234567890',
+            'account_holder' => 'Warung Luwak',
+        ]);
         $product = Product::create([
             'name' => 'Teh',
             'stok' => 2,
@@ -185,7 +191,32 @@ class CoreApiTest extends TestCase
             'items' => [['product_id' => $product->product_id, 'quantity' => 1]],
         ])->assertCreated()
             ->assertJsonPath('data.payment.0.method', 'transfer')
-            ->assertJsonPath('data.payment.0.status', 'pending');
+            ->assertJsonPath('data.payment.0.status', 'pending')
+            ->assertJsonPath('data.payment.0.bank_transfer.bank_name', 'BCA')
+            ->assertJsonPath('data.payment.0.bank_transfer.account_number', '1234567890')
+            ->assertJsonPath('data.payment.0.bank_transfer.account_holder', 'Warung Luwak');
+    }
+
+    public function test_customer_api_rejects_transfer_when_no_store_bank_account_is_configured(): void
+    {
+        $product = Product::create([
+            'name' => 'Teh',
+            'stok' => 2,
+            'price' => 12000,
+            'is_available' => true,
+        ]);
+        $token = $this->getJson(URL::signedRoute('api.v1.customer.qr-access', absolute: false))
+            ->json('data.token');
+
+        $this->withToken($token)->postJson('/api/v1/customer/orders', [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'transfer',
+            'items' => [['product_id' => $product->product_id, 'quantity' => 1]],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('payment_method');
+
+        $this->assertDatabaseCount('orders', 0);
     }
 
     public function test_admin_api_can_manage_products_categories_ingredients_and_tables(): void

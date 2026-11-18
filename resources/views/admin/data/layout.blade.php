@@ -26,6 +26,10 @@
                     ];
 
                     if (auth()->user()?->role !== 'barista') {
+                        $adminMenu[] = ['label' => 'Rekening Transfer', 'route' => 'admin.bank-transfer', 'icon' => 'landmark'];
+                    }
+
+                    if (auth()->user()?->role !== 'barista') {
                         array_splice($adminMenu, 3, 0, [[
                             'label' => 'Stok Bahan',
                             'route' => 'admin.bahan',

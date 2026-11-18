@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\DiningTable;
+use App\Models\AppSetting;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -73,7 +74,14 @@ class CustomerController extends Controller
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:20'],
         ]);
 
-        $order = DB::transaction(function () use ($data): Order {
+        $transferDetails = AppSetting::bankTransferDetails();
+        if ($data['payment_method'] === 'transfer' && ! $transferDetails['configured']) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Pembayaran transfer belum tersedia. Silakan pilih metode lain atau hubungi staf kedai.',
+            ]);
+        }
+
+        $order = DB::transaction(function () use ($data, $transferDetails): Order {
             $productIds = collect($data['items'])->pluck('product_id');
             $products = Product::availableForSale()
                 ->whereIn('product_id', $productIds)
@@ -145,6 +153,9 @@ class CustomerController extends Controller
                 'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
                 'amount' => $total,
                 'payment_status' => 'pending',
+                'nama_bank' => $data['payment_method'] === 'transfer' ? $transferDetails['bank_name'] : null,
+                'nomor_rekening' => $data['payment_method'] === 'transfer' ? $transferDetails['account_number'] : null,
+                'nama_pemilik_rekening' => $data['payment_method'] === 'transfer' ? $transferDetails['account_holder'] : null,
             ]);
 
             if ($table) {
@@ -233,6 +244,11 @@ class CustomerController extends Controller
                 'method' => $payment->payment_method,
                 'status' => $payment->payment_status,
                 'amount' => $payment->amount,
+                'bank_transfer' => $payment->payment_method === 'transfer' ? [
+                    'bank_name' => $payment->nama_bank,
+                    'account_number' => $payment->nomor_rekening,
+                    'account_holder' => $payment->nama_pemilik_rekening,
+                ] : null,
             ])->values(),
             'created_at' => $order->created_at?->toISOString(),
         ];

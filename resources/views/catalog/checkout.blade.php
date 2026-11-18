@@ -98,8 +98,8 @@
                         <span><strong class="block text-xs text-white">Bayar tunai di kedai</strong><span class="mt-1 block text-[9px] text-slate-500">Belum dibayar online.</span></span>
                     </label>
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#101319] p-3 has-[:checked]:border-amber-300/60 has-[:checked]:bg-amber-300/[0.08]">
-                        <input type="radio" name="payment_method" value="transfer" @checked(old('payment_method') === 'transfer') class="mt-0.5 accent-amber-300">
-                        <span><strong class="block text-xs text-white">Transfer bank</strong><span class="mt-1 block text-[9px] text-slate-500">Konfirmasi pembayaran dilakukan staf.</span></span>
+                        <input type="radio" name="payment_method" value="transfer" @checked(old('payment_method') === 'transfer') @disabled(! $transferDetails['configured']) class="mt-0.5 accent-amber-300 disabled:opacity-50">
+                        <span><strong class="block text-xs text-white">Transfer bank</strong><span class="mt-1 block text-[9px] text-slate-500">{{ $transferDetails['configured'] ? 'Transfer dari bank mana pun ke rekening toko.' : 'Belum tersedia karena rekening tujuan belum diatur.' }}</span></span>
                     </label>
                 </div>
                 @error('payment_method')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
@@ -109,7 +109,18 @@
                 <p class="text-[10px] leading-relaxed text-slate-400">Pembayaran tunai dilakukan di kedai. Staf akan mengonfirmasi pembayaran saat pesanan dibayar.</p>
             </div>
             <div id="transfer-payment-note" @if (old('payment_method') !== 'transfer') hidden @endif class="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-3">
-                <p class="text-[10px] leading-relaxed text-slate-400">Silakan minta detail rekening kepada staf kedai. Pembayaran akan dikonfirmasi setelah transfer diterima.</p>
+                @if ($transferDetails['configured'])
+                    <p class="text-[10px] font-bold text-amber-200">Transfer ke rekening toko berikut:</p>
+                    <dl class="mt-2 space-y-1.5 text-[10px]">
+                        <div class="flex justify-between gap-3"><dt class="text-slate-400">Bank</dt><dd class="text-right font-semibold text-white">{{ $transferDetails['bank_name'] }}</dd></div>
+                        <div class="flex justify-between gap-3"><dt class="text-slate-400">Nomor rekening</dt><dd class="text-right font-semibold text-white">{{ $transferDetails['account_number'] }}</dd></div>
+                        <div class="flex justify-between gap-3"><dt class="text-slate-400">Atas nama</dt><dd class="text-right font-semibold text-white">{{ $transferDetails['account_holder'] }}</dd></div>
+                        <div class="flex justify-between gap-3 border-t border-amber-300/10 pt-1.5"><dt class="text-slate-400">Jumlah transfer</dt><dd class="text-right font-bold text-amber-200">Rp {{ number_format($total, 0, ',', '.') }}</dd></div>
+                    </dl>
+                    <p class="mt-2 text-[9px] leading-relaxed text-slate-500">Kamu dapat transfer dari bank atau aplikasi bank lain. Pembayaran dikonfirmasi staf setelah dana diterima.</p>
+                @else
+                    <p class="text-[10px] leading-relaxed text-slate-400">Rekening tujuan belum diatur. Silakan pilih metode pembayaran lain atau hubungi staf kedai.</p>
+                @endif
             </div>
 
             <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-950/20 transition hover:bg-amber-200">

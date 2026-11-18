@@ -18,6 +18,10 @@
         ];
         [$statusTitle, $statusDescription, $activeStep] = $statusSteps[$order->order_status] ?? ['Status diperbarui', 'Status pesanan sedang diperbarui.', 1];
         $steps = ['Diterima', 'Diracik', 'Siap', 'Selesai'];
+        $payment = $order->payments->first();
+        $bankName = $payment?->nama_bank ?: $transferDetails['bank_name'];
+        $accountNumber = $payment?->nomor_rekening ?: $transferDetails['account_number'];
+        $accountHolder = $payment?->nama_pemilik_rekening ?: $transferDetails['account_holder'];
     @endphp
     <div class="mb-4 flex items-center justify-between">
         <div>
@@ -77,7 +81,6 @@
         </div>
     </section>
 
-    @php($payment = $order->payments->first())
     @if ($payment)
         <section class="mt-4 rounded-2xl border border-white/[0.07] bg-[#191c22] p-4">
             <div class="flex items-center justify-between">
@@ -109,7 +112,20 @@
             @elseif ($payment->payment_method === 'cash')
                 <p class="mt-3 rounded-xl bg-[#101319] p-3 text-[10px] leading-relaxed text-slate-400">Silakan serahkan uang tunai kepada staf kedai. Bon ini merupakan rincian pesanan; pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
             @elseif ($payment->payment_method === 'transfer')
-                <p class="mt-3 rounded-xl bg-[#101319] p-3 text-[10px] leading-relaxed text-slate-400">Silakan minta detail rekening kepada staf kedai dan lakukan transfer sesuai total pesanan. Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
+                @if ($bankName && $accountNumber && $accountHolder)
+                    <div class="mt-3 rounded-xl border border-amber-300/20 bg-[#101319] p-3">
+                        <p class="text-[10px] font-bold text-amber-200">Transfer ke rekening toko</p>
+                        <dl class="mt-2 space-y-1.5 text-[10px]">
+                            <div class="flex justify-between gap-3"><dt class="text-slate-400">Bank</dt><dd class="text-right font-semibold text-white">{{ $bankName }}</dd></div>
+                            <div class="flex justify-between gap-3"><dt class="text-slate-400">Nomor rekening</dt><dd class="text-right font-semibold text-white">{{ $accountNumber }}</dd></div>
+                            <div class="flex justify-between gap-3"><dt class="text-slate-400">Atas nama</dt><dd class="text-right font-semibold text-white">{{ $accountHolder }}</dd></div>
+                            <div class="flex justify-between gap-3 border-t border-white/[0.06] pt-1.5"><dt class="text-slate-400">Jumlah transfer</dt><dd class="text-right font-bold text-amber-200">Rp {{ number_format($payment->amount, 0, ',', '.') }}</dd></div>
+                        </dl>
+                        <p class="mt-2 text-[9px] leading-relaxed text-slate-500">Transfer dapat dilakukan dari bank atau aplikasi bank lain. Pembayaran dianggap lunas setelah dikonfirmasi staf.</p>
+                    </div>
+                @else
+                    <p class="mt-3 rounded-xl bg-[#101319] p-3 text-[10px] leading-relaxed text-slate-400">Silakan minta detail rekening kepada staf kedai. Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
+                @endif
             @endif
             <button type="button" onclick="window.print()" class="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-semibold text-amber-200 print:hidden">
                 <i data-lucide="printer" class="h-4 w-4"></i> Cetak bon
