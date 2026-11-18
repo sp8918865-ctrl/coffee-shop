@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\DiningTable;
 use App\Models\Order;
-use App\Models\AppSetting;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -180,24 +179,21 @@ class PublicOrderingTest extends TestCase
     public function test_guest_can_place_a_transfer_order_that_waits_for_staff_confirmation(): void
     {
         $this->scanQr();
-        AppSetting::setBankTransferDetails([
-            'bank_name' => 'BCA',
-            'account_number' => '1234567890',
-            'account_holder' => 'Warung Luwak',
-        ]);
         $product = $this->product();
         $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
 
         $this->get(route('checkout'))
             ->assertOk()
-            ->assertSee('Transfer dari bank mana pun')
-            ->assertSee('1234567890')
-            ->assertSee('Warung Luwak');
+            ->assertSee('Pilih bank yang kamu gunakan')
+            ->assertSee('BCA')
+            ->assertSee('BRI')
+            ->assertSee('Bank lainnya');
 
         $this->post(route('checkout.place'), [
             'customer_name' => 'Ayu',
             'order_type' => 'take_away',
             'payment_method' => 'transfer',
+            'bank_pengirim' => 'BCA',
         ])->assertRedirect();
 
         $order = Order::with('payments')->firstOrFail();
@@ -206,19 +202,16 @@ class PublicOrderingTest extends TestCase
         $this->assertSame('transfer', $payment->payment_method);
         $this->assertSame('pending', $payment->payment_status);
         $this->assertNull($payment->payment_gateway_ref);
-        $this->assertSame('BCA', $payment->nama_bank);
-        $this->assertSame('1234567890', $payment->nomor_rekening);
-        $this->assertSame('Warung Luwak', $payment->nama_pemilik_rekening);
+        $this->assertSame('BCA', $payment->bank_pengirim);
         $this->get(route('orders.track', $order->public_tracking_token))
             ->assertOk()
             ->assertSee('Transfer bank')
-            ->assertSee('1234567890')
-            ->assertSee('Warung Luwak')
-            ->assertSee('Transfer dapat dilakukan')
+            ->assertSee('Bank yang akan kamu gunakan: <strong class="text-white">BCA</strong>.', false)
+            ->assertSee('minta detail rekening tujuan kepada staf kedai')
             ->assertSee('Belum dibayar');
     }
 
-    public function test_transfer_checkout_is_unavailable_until_the_store_sets_a_bank_account(): void
+    public function test_transfer_requires_a_bank_and_accepts_a_customer_entered_bank(): void
     {
         $this->scanQr();
         $product = $this->product();
@@ -226,18 +219,31 @@ class PublicOrderingTest extends TestCase
 
         $this->get(route('checkout'))
             ->assertOk()
-            ->assertSee('Belum tersedia karena rekening tujuan belum diatur.')
-            ->assertSee('disabled', false);
+            ->assertSee('name="bank_pengirim"', false)
+            ->assertDontSee('Rekening tujuan belum diatur');
 
         $this->from(route('checkout'))
             ->post(route('checkout.place'), [
                 'customer_name' => 'Ayu',
                 'order_type' => 'take_away',
                 'payment_method' => 'transfer',
-            ])
-            ->assertSessionHasErrors('payment_method');
+            ])->assertSessionHasErrors('bank_pengirim');
 
         $this->assertDatabaseCount('orders', 0);
+
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]])
+            ->post(route('checkout.place'), [
+                'customer_name' => 'Ayu',
+                'order_type' => 'take_away',
+                'payment_method' => 'transfer',
+                'bank_pengirim' => 'other',
+                'bank_pengirim_lainnya' => 'Bank Nusantara',
+            ])->assertRedirect();
+
+        $this->assertDatabaseHas('payments', [
+            'payment_method' => 'transfer',
+            'bank_pengirim' => 'Bank Nusantara',
+        ]);
     }
 
     public function test_order_is_not_retrievable_by_sequential_id_or_another_token(): void
