@@ -2,6 +2,8 @@
 
 Sistem kasir dan katalog menu berbasis Laravel.
 
+Lihat [Panduan Pembayaran](MANUAL-PEMBAYARAN.md) untuk langkah admin, staf, dan pelanggan.
+
 Persyaratan
 
 - PHP 8.2 atau versi lebih baru (pastikan ekstensi pdo_sqlite, mbstring, dan openssl sudah aktif)
