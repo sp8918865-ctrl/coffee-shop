@@ -187,13 +187,17 @@ class PublicOrderingTest extends TestCase
             ->assertSee('Pilih bank yang kamu gunakan')
             ->assertSee('BCA')
             ->assertSee('BRI')
-            ->assertSee('Bank lainnya');
+            ->assertSee('Bank lainnya')
+            ->assertSee('Nama pemilik rekening')
+            ->assertSee('Nomor rekening');
 
         $this->post(route('checkout.place'), [
             'customer_name' => 'Ayu',
             'order_type' => 'take_away',
             'payment_method' => 'transfer',
             'bank_pengirim' => 'BCA',
+            'nama_pemilik_rekening' => 'Ayu Rahma',
+            'nomor_rekening' => '1234567890',
         ])->assertRedirect();
 
         $order = Order::with('payments')->firstOrFail();
@@ -203,6 +207,8 @@ class PublicOrderingTest extends TestCase
         $this->assertSame('pending', $payment->payment_status);
         $this->assertNull($payment->payment_gateway_ref);
         $this->assertSame('BCA', $payment->bank_pengirim);
+        $this->assertSame('Ayu Rahma', $payment->nama_pemilik_rekening);
+        $this->assertSame('1234567890', $payment->nomor_rekening);
         $this->get(route('orders.track', $order->public_tracking_token))
             ->assertOk()
             ->assertSee('Transfer bank')
@@ -238,6 +244,8 @@ class PublicOrderingTest extends TestCase
                 'payment_method' => 'transfer',
                 'bank_pengirim' => 'other',
                 'bank_pengirim_lainnya' => 'Bank Nusantara',
+                'nama_pemilik_rekening' => 'Ayu Rahma',
+                'nomor_rekening' => '9876543210',
             ])->assertRedirect();
 
         $this->assertDatabaseHas('payments', [

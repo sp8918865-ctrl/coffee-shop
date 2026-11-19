@@ -107,6 +107,8 @@ class PublicOrderController extends Controller
                 Rule::in(IndonesianBanks::validationOptions()),
             ],
             'bank_pengirim_lainnya' => ['required_if:bank_pengirim,other', 'nullable', 'string', 'max:100'],
+            'nama_pemilik_rekening' => ['required_if:payment_method,transfer', 'nullable', 'string', 'max:100'],
+            'nomor_rekening' => ['required_if:payment_method,transfer', 'nullable', 'string', 'max:50'],
         ]);
         $items = $this->cartProducts($request);
         $cart = $request->session()->get(self::CART_KEY, []);
@@ -178,6 +180,13 @@ class PublicOrderController extends Controller
                 'amount' => $total,
                 'payment_status' => 'pending',
                 'bank_pengirim' => $senderBank,
+                'nama_bank' => $senderBank,
+                'nama_pemilik_rekening' => $data['payment_method'] === 'transfer'
+                    ? trim($data['nama_pemilik_rekening'])
+                    : null,
+                'nomor_rekening' => $data['payment_method'] === 'transfer'
+                    ? trim($data['nomor_rekening'])
+                    : null,
             ]);
 
             if ($table) {

@@ -183,6 +183,8 @@ class CoreApiTest extends TestCase
             'order_type' => 'take_away',
             'payment_method' => 'transfer',
             'bank_pengirim' => 'BCA',
+            'nama_pemilik_rekening' => 'Ayu Rahma',
+            'nomor_rekening' => '1234567890',
             'items' => [['product_id' => $product->product_id, 'quantity' => 1]],
         ])->assertCreated()
             ->assertJsonPath('data.payment.0.method', 'transfer')

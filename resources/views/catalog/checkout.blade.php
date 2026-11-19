@@ -87,7 +87,7 @@
 
             <fieldset>
                 <legend class="text-[10px] font-semibold text-slate-300">Metode pembayaran</legend>
-                <div class="mt-2 space-y-2">
+                <div id="payment-method-options" class="mt-2 space-y-2">
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#101319] p-3 has-[:checked]:border-amber-300/60 has-[:checked]:bg-amber-300/[0.08]">
                         <input type="radio" name="payment_method" value="qris" @checked(old('payment_method', 'qris') === 'qris') class="mt-0.5 accent-amber-300">
                         <span class="flex-1"><strong class="block text-xs text-white">QRIS simulasi</strong><span class="mt-1 block text-[9px] leading-relaxed text-slate-500">Belum terhubung ke penyedia pembayaran. Tidak ada QR aktif atau tagihan sungguhan.</span></span>
@@ -109,26 +109,52 @@
                 <p class="text-[10px] leading-relaxed text-slate-400">Pembayaran tunai dilakukan di kedai. Staf akan mengonfirmasi pembayaran saat pesanan dibayar.</p>
             </div>
             <div id="transfer-payment-note" @if (old('payment_method') !== 'transfer') hidden @endif class="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-3">
-                <p class="text-[10px] font-semibold text-slate-300">Pilih bank yang kamu gunakan</p>
-                <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    @foreach (\App\Support\IndonesianBanks::visualOptions() as $bank)
+                <div id="transfer-bank-picker">
+                    <p class="text-[10px] font-semibold text-slate-300">Pilih bank yang kamu gunakan</p>
+                    <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        @foreach (\App\Support\IndonesianBanks::visualOptions() as $bank)
+                            <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#101319] p-2.5 transition hover:border-amber-300/40 has-[:checked]:border-amber-300/70 has-[:checked]:bg-amber-300/[0.08]">
+                                <input type="radio" name="bank_pengirim" value="{{ $bank['name'] }}" @checked(old('bank_pengirim') === $bank['name']) class="sr-only">
+                                <span class="grid h-9 w-11 shrink-0 place-items-center rounded-lg px-1 text-[9px] font-black tracking-tight" style="background-color: {{ $bank['background'] }}; color: {{ $bank['foreground'] }}">{{ $bank['mark'] }}</span>
+                                <span class="text-[10px] font-semibold leading-tight text-white">{{ $bank['name'] }}</span>
+                            </label>
+                        @endforeach
                         <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#101319] p-2.5 transition hover:border-amber-300/40 has-[:checked]:border-amber-300/70 has-[:checked]:bg-amber-300/[0.08]">
-                            <input type="radio" name="bank_pengirim" value="{{ $bank['name'] }}" @checked(old('bank_pengirim') === $bank['name']) class="sr-only">
-                            <span class="grid h-9 w-11 shrink-0 place-items-center rounded-lg px-1 text-[9px] font-black tracking-tight" style="background-color: {{ $bank['background'] }}; color: {{ $bank['foreground'] }}">{{ $bank['mark'] }}</span>
-                            <span class="text-[10px] font-semibold leading-tight text-white">{{ $bank['name'] }}</span>
+                            <input type="radio" name="bank_pengirim" value="{{ \App\Support\IndonesianBanks::OTHER }}" @checked(old('bank_pengirim') === \App\Support\IndonesianBanks::OTHER) class="sr-only">
+                            <span class="grid h-9 w-11 shrink-0 place-items-center rounded-lg bg-slate-700 text-[10px] font-black text-white">LAIN</span>
+                            <span class="text-[10px] font-semibold leading-tight text-white">Bank lainnya</span>
                         </label>
-                    @endforeach
-                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#101319] p-2.5 transition hover:border-amber-300/40 has-[:checked]:border-amber-300/70 has-[:checked]:bg-amber-300/[0.08]">
-                        <input type="radio" name="bank_pengirim" value="{{ \App\Support\IndonesianBanks::OTHER }}" @checked(old('bank_pengirim') === \App\Support\IndonesianBanks::OTHER) class="sr-only">
-                        <span class="grid h-9 w-11 shrink-0 place-items-center rounded-lg bg-slate-700 text-[10px] font-black text-white">LAIN</span>
-                        <span class="text-[10px] font-semibold leading-tight text-white">Bank lainnya</span>
-                    </label>
+                    </div>
+                    @error('bank_pengirim')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
                 </div>
-                @error('bank_pengirim')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
-                <div id="other-bank-field" @if (old('bank_pengirim') !== \App\Support\IndonesianBanks::OTHER) hidden @endif class="mt-3">
-                    <label for="bank_pengirim_lainnya" class="text-[10px] font-semibold text-slate-300">Nama bank</label>
-                    <input id="bank_pengirim_lainnya" name="bank_pengirim_lainnya" value="{{ old('bank_pengirim_lainnya') }}" maxlength="100" placeholder="Masukkan nama bank" class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#101319] px-3 py-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-300 focus:outline-none">
-                    @error('bank_pengirim_lainnya')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+
+                <div id="transfer-bank-details" @if (! old('bank_pengirim')) hidden @endif>
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-[9px] font-semibold uppercase tracking-widest text-slate-500">Bank pengirim</p>
+                            <p id="selected-bank-name" class="mt-1 text-sm font-black text-amber-300">{{ old('bank_pengirim') === \App\Support\IndonesianBanks::OTHER ? old('bank_pengirim_lainnya') : old('bank_pengirim') }}</p>
+                        </div>
+                        <button id="change-bank-button" type="button" class="rounded-lg border border-white/10 px-3 py-2 text-[10px] font-bold text-slate-300">Ganti bank</button>
+                    </div>
+
+                    <div id="other-bank-field" @if (old('bank_pengirim') !== \App\Support\IndonesianBanks::OTHER) hidden @endif class="mt-3">
+                        <label for="bank_pengirim_lainnya" class="text-[10px] font-semibold text-slate-300">Nama bank</label>
+                        <input id="bank_pengirim_lainnya" name="bank_pengirim_lainnya" value="{{ old('bank_pengirim_lainnya') }}" maxlength="100" placeholder="Masukkan nama bank" class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#101319] px-3 py-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-300 focus:outline-none">
+                        @error('bank_pengirim_lainnya')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div>
+                            <label for="nama_pemilik_rekening" class="text-[10px] font-semibold text-slate-300">Nama pemilik rekening</label>
+                            <input id="nama_pemilik_rekening" name="nama_pemilik_rekening" value="{{ old('nama_pemilik_rekening') }}" required maxlength="100" autocomplete="name" placeholder="Nama sesuai rekening" class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#101319] px-3 py-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-300 focus:outline-none">
+                            @error('nama_pemilik_rekening')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="nomor_rekening" class="text-[10px] font-semibold text-slate-300">Nomor rekening</label>
+                            <input id="nomor_rekening" name="nomor_rekening" value="{{ old('nomor_rekening') }}" required maxlength="50" inputmode="numeric" placeholder="Masukkan nomor rekening" class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#101319] px-3 py-3 text-sm text-white placeholder:text-slate-600 focus:border-amber-300 focus:outline-none">
+                            @error('nomor_rekening')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
                 </div>
                 <p class="mt-3 text-[9px] leading-relaxed text-slate-400">Setelah membuat pesanan, minta rekening tujuan kepada staf kedai. Transfer bank masih dikonfirmasi secara manual oleh staf.</p>
             </div>
@@ -144,20 +170,37 @@
 @push('scripts')
 <script>
     const checkoutForm = document.getElementById('checkout-form');
+    const paymentMethodOptions = document.getElementById('payment-method-options');
     const cashNote = document.getElementById('cash-payment-note');
     const transferNote = document.getElementById('transfer-payment-note');
+    const transferBankPicker = document.getElementById('transfer-bank-picker');
+    const transferBankDetails = document.getElementById('transfer-bank-details');
+    const selectedBankName = document.getElementById('selected-bank-name');
+    const changeBankButton = document.getElementById('change-bank-button');
     const senderBanks = document.querySelectorAll('input[name="bank_pengirim"]');
     const otherBankField = document.getElementById('other-bank-field');
     const otherBankInput = document.getElementById('bank_pengirim_lainnya');
+    const accountNameInput = document.getElementById('nama_pemilik_rekening');
+    const accountNumberInput = document.getElementById('nomor_rekening');
 
     function syncPaymentNotes() {
         const method = document.querySelector('input[name="payment_method"]:checked')?.value;
         const selectedBank = document.querySelector('input[name="bank_pengirim"]:checked')?.value;
+        paymentMethodOptions.hidden = method === 'transfer';
         cashNote.hidden = method !== 'cash';
         transferNote.hidden = method !== 'transfer';
         senderBanks.forEach(input => input.required = method === 'transfer');
-        otherBankField.hidden = method !== 'transfer' || selectedBank !== '{{ \App\Support\IndonesianBanks::OTHER }}';
+        transferBankPicker.hidden = method !== 'transfer' || Boolean(selectedBank);
+        transferBankDetails.hidden = method !== 'transfer' || !selectedBank;
+        otherBankField.hidden = selectedBank !== '{{ \App\Support\IndonesianBanks::OTHER }}';
         otherBankInput.required = method === 'transfer' && selectedBank === '{{ \App\Support\IndonesianBanks::OTHER }}';
+        accountNameInput.required = method === 'transfer' && Boolean(selectedBank);
+        accountNumberInput.required = method === 'transfer' && Boolean(selectedBank);
+        if (selectedBank === '{{ \App\Support\IndonesianBanks::OTHER }}') {
+            selectedBankName.textContent = otherBankInput.value.trim() || 'Bank lainnya';
+        } else if (selectedBank) {
+            selectedBankName.textContent = selectedBank;
+        }
     }
 
     const tableField = document.getElementById('table-field');
@@ -170,6 +213,11 @@
     document.querySelectorAll('input[name="order_type"]').forEach(input => input.addEventListener('change', syncOrderType));
     document.querySelectorAll('input[name="payment_method"]').forEach(input => input.addEventListener('change', syncPaymentNotes));
     senderBanks.forEach(input => input.addEventListener('change', syncPaymentNotes));
+    otherBankInput.addEventListener('input', syncPaymentNotes);
+    changeBankButton.addEventListener('click', () => {
+        senderBanks.forEach(input => input.checked = false);
+        syncPaymentNotes();
+    });
     syncOrderType();
     syncPaymentNotes();
 </script>

@@ -76,6 +76,8 @@ class CustomerController extends Controller
                 Rule::in(IndonesianBanks::validationOptions()),
             ],
             'bank_pengirim_lainnya' => ['required_if:bank_pengirim,other', 'nullable', 'string', 'max:100'],
+            'nama_pemilik_rekening' => ['required_if:payment_method,transfer', 'nullable', 'string', 'max:100'],
+            'nomor_rekening' => ['required_if:payment_method,transfer', 'nullable', 'string', 'max:50'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_id' => ['required', 'integer', 'distinct', 'exists:products,product_id'],
@@ -161,6 +163,13 @@ class CustomerController extends Controller
                 'amount' => $total,
                 'payment_status' => 'pending',
                 'bank_pengirim' => $senderBank,
+                'nama_bank' => $senderBank,
+                'nama_pemilik_rekening' => $data['payment_method'] === 'transfer'
+                    ? trim($data['nama_pemilik_rekening'])
+                    : null,
+                'nomor_rekening' => $data['payment_method'] === 'transfer'
+                    ? trim($data['nomor_rekening'])
+                    : null,
             ]);
 
             if ($table) {
@@ -250,6 +259,8 @@ class CustomerController extends Controller
                 'status' => $payment->payment_status,
                 'amount' => $payment->amount,
                 'sender_bank' => $payment->bank_pengirim,
+                'account_name' => $payment->nama_pemilik_rekening,
+                'account_number' => $payment->nomor_rekening,
             ])->values(),
             'created_at' => $order->created_at?->toISOString(),
         ];

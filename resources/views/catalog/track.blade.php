@@ -113,6 +113,12 @@
                     @if ($payment->bank_pengirim)
                         <p>Bank yang akan kamu gunakan: <strong class="text-white">{{ $payment->bank_pengirim }}</strong>.</p>
                     @endif
+                    @if ($payment->nama_pemilik_rekening)
+                        <p class="mt-1">Nama pemilik rekening: <strong class="text-white">{{ $payment->nama_pemilik_rekening }}</strong>.</p>
+                    @endif
+                    @if ($payment->nomor_rekening)
+                        <p class="mt-1">Nomor rekening: <strong class="text-white">{{ $payment->nomor_rekening }}</strong>.</p>
+                    @endif
                     <p class="mt-1">Silakan minta detail rekening tujuan kepada staf kedai. Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
                 </div>
             @endif
