@@ -109,6 +109,7 @@
                 <p class="text-[10px] leading-relaxed text-slate-400">Pembayaran tunai dilakukan di kedai. Staf akan mengonfirmasi pembayaran saat pesanan dibayar.</p>
             </div>
             <div id="transfer-payment-note" @if (old('payment_method') !== 'transfer') hidden @endif class="rounded-xl border border-amber-300/20 bg-amber-300/[0.04] p-3">
+                <button id="change-payment-method-button" type="button" class="mb-3 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-bold text-slate-300">Ganti metode pembayaran</button>
                 <div id="transfer-bank-picker">
                     <p class="text-[10px] font-semibold text-slate-300">Pilih bank yang kamu gunakan</p>
                     <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -177,6 +178,7 @@
     const transferBankDetails = document.getElementById('transfer-bank-details');
     const selectedBankName = document.getElementById('selected-bank-name');
     const changeBankButton = document.getElementById('change-bank-button');
+    const changePaymentMethodButton = document.getElementById('change-payment-method-button');
     const senderBanks = document.querySelectorAll('input[name="bank_pengirim"]');
     const otherBankField = document.getElementById('other-bank-field');
     const otherBankInput = document.getElementById('bank_pengirim_lainnya');
@@ -217,6 +219,11 @@
     changeBankButton.addEventListener('click', () => {
         senderBanks.forEach(input => input.checked = false);
         syncPaymentNotes();
+    });
+    changePaymentMethodButton.addEventListener('click', () => {
+        document.querySelector('input[name="payment_method"][value="transfer"]').checked = false;
+        syncPaymentNotes();
+        document.querySelector('input[name="payment_method"]').focus();
     });
     syncOrderType();
     syncPaymentNotes();
