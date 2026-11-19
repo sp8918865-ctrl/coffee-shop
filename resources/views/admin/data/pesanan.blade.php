@@ -23,11 +23,33 @@
         <label class="mt-3 block text-xs text-slate-300">Catatan<input name="notes" maxlength="1000" class="mt-1 w-full rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-white"></label>
         <button @disabled($products->isEmpty()) class="mt-4 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 disabled:opacity-50">Simpan pesanan</button>
     </form></details>
+    <div class="flex flex-col gap-3 rounded-xl border border-[#1e293b] bg-[#121824] p-3 sm:flex-row sm:items-center">
+        <label class="relative min-w-0 flex-1">
+            <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"></i>
+            <input
+                id="order-filter-search"
+                type="search"
+                placeholder="Cari nomor, pelanggan, menu, atau catatan..."
+                autocomplete="off"
+                class="w-full rounded-lg border border-[#26334d] bg-[#0b0f17] py-2 pl-9 pr-3 text-xs text-white placeholder-slate-500"
+            >
+        </label>
+        <select id="order-filter-status" class="rounded-lg border border-[#26334d] bg-[#0b0f17] px-3 py-2 text-xs text-white">
+            <option value="">Semua status</option>
+            <option value="new">Pesanan baru</option>
+            <option value="brewing">Sedang diracik</option>
+            <option value="ready">Siap disajikan</option>
+            <option value="completed">Selesai hari ini</option>
+        </select>
+        <button id="order-filter-reset" type="button" class="rounded-lg border border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-slate-400 hover:text-white">
+            Reset
+        </button>
+    </div>
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         @foreach ([['Pesanan baru', $pesananBaru, 'new'], ['Sedang diracik', $pesananBrewing, 'brewing'], ['Siap disajikan', $pesananReady, 'ready'], ['Selesai hari ini', $pesananSelesai, 'completed']] as [$label, $orders, $status])
-        <section class="min-w-0 space-y-3"><h2 class="border-b border-[#1e293b] pb-2 text-sm font-semibold text-white">{{ $label }} <span class="text-xs text-slate-500">{{ $orders->count() }}</span></h2>
+        <section class="min-w-0 space-y-3" data-order-column="{{ $status }}"><h2 class="border-b border-[#1e293b] pb-2 text-sm font-semibold text-white">{{ $label }} <span data-order-count class="text-xs text-slate-500">{{ $orders->count() }}</span></h2>
             @forelse ($orders as $order)
-            <article class="rounded-lg border border-[#1e293b] bg-[#121824] p-4">
+            <article class="rounded-lg border border-[#1e293b] bg-[#121824] p-4" data-order-status="{{ $status }}" data-order-search="{{ strtolower(($order->order_number ?? '#' . $order->order_id).' '.($order->customer_name ?: 'Pelanggan').' '.($order->notes ?: '').' '.$order->items->pluck('product_name')->implode(' ').' '.($order->table_number ? 'meja '.$order->table_number : 'takeaway')) }}">
                 <div class="flex items-start justify-between gap-2"><div><h3 class="font-bold text-amber-400">{{ $order->order_number ?? ('#' . $order->order_id) }}</h3><p class="mt-1 text-[11px] text-slate-400">{{ $order->order_type === 'dine_in' ? 'Meja ' . ($order->table_number ?: '-') : 'Takeaway' }} · {{ $order->customer_name ?: 'Pelanggan' }}</p></div><span class="text-xs text-white">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span></div>
                 <ul class="my-3 space-y-2 border-y border-[#1e293b] py-2 text-xs">@foreach ($order->items as $item)<li class="flex justify-between gap-2"><span>{{ $item->quantity }}x {{ $item->product_name }} <span class="text-slate-400">· Rp {{ number_format($item->unit_price, 0, ',', '.') }}/item</span></span><strong class="shrink-0 text-slate-200">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</strong></li>@endforeach</ul>
                 @if ($order->notes)<p class="mb-3 text-[11px] text-slate-400">{{ $order->notes }}</p>@endif
@@ -64,7 +86,7 @@
                 <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.pesanan.destroy', $order) }}" onsubmit="return confirm('Hapus pesanan ini?')" class="mt-2">@csrf @method('DELETE')<button class="text-[11px] text-rose-400">Hapus pesanan</button></form>
             </article>
             @empty
-            <p class="rounded-lg border border-dashed border-[#26334d] p-4 text-xs text-slate-500">Tidak ada pesanan.</p>
+            <p data-empty-state class="rounded-lg border border-dashed border-[#26334d] p-4 text-xs text-slate-500">Tidak ada pesanan.</p>
             @endforelse
         </section>
         @endforeach
@@ -148,6 +170,63 @@
             window.clearTimeout(debounceTimer);
             saveCashPayment();
         });
+    });
+
+    const orderSearch = document.querySelector('#order-filter-search');
+    const orderStatus = document.querySelector('#order-filter-status');
+    const orderReset = document.querySelector('#order-filter-reset');
+
+    function normalizeOrderText(value) {
+        return (value || '')
+            .toString()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function filterOrders() {
+        const search = normalizeOrderText(orderSearch.value).trim();
+        const status = orderStatus.value;
+
+        document.querySelectorAll('[data-order-column]').forEach(column => {
+            const columnStatus = column.dataset.orderColumn;
+            const matchesStatus = status === '' || status === columnStatus;
+            column.classList.toggle('hidden', !matchesStatus);
+
+            if (!matchesStatus) {
+                return;
+            }
+
+            let visibleCount = 0;
+            column.querySelectorAll('[data-order-status]').forEach(order => {
+                const matchesSearch = search === '' || normalizeOrderText(order.dataset.orderSearch).includes(search);
+                order.classList.toggle('hidden', !matchesSearch);
+                if (matchesSearch) {
+                    visibleCount++;
+                }
+            });
+
+            const count = column.querySelector('[data-order-count]');
+            if (count) {
+                count.textContent = visibleCount;
+            }
+
+            const emptyState = column.querySelector('[data-empty-state]');
+            if (emptyState) {
+                const hasFilteredOrders = column.querySelectorAll('[data-order-status]:not(.hidden)').length > 0;
+                emptyState.classList.toggle('hidden', hasFilteredOrders);
+                emptyState.textContent = search === '' ? 'Tidak ada pesanan.' : 'Pesanan tidak ditemukan.';
+            }
+        });
+    }
+
+    orderSearch.addEventListener('input', filterOrders);
+    orderStatus.addEventListener('change', filterOrders);
+    orderReset.addEventListener('click', () => {
+        orderSearch.value = '';
+        orderStatus.value = '';
+        filterOrders();
+        orderSearch.focus();
     });
 </script>
 @endsection
