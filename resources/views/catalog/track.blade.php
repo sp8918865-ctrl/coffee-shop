@@ -82,7 +82,7 @@
         <section class="mt-4 rounded-2xl border border-white/[0.07] bg-[#191c22] p-4">
             <div class="flex items-center justify-between">
                 <h2 class="text-xs font-extrabold text-white">Bon pembayaran</h2>
-                <span class="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-[8px] font-bold uppercase text-amber-200">{{ $payment->payment_status === 'paid' ? 'Lunas' : 'Belum dibayar' }}</span>
+                <span class="rounded-full border border-amber-300/20 bg-amber-300/[0.07] px-2.5 py-1 text-[8px] font-bold uppercase text-amber-200">{{ $payment->payment_status === 'paid' ? 'Lunas' : ($payment->payment_status === 'failed' ? 'Gagal' : 'Belum dibayar') }}</span>
             </div>
             <p class="mt-2 text-[9px] text-slate-500">No. bon {{ $order->order_number }} · {{ $order->created_at->format('d M Y · H:i') }}</p>
             @if ($order->customer_name)
@@ -96,10 +96,20 @@
             @endif
             @if ($payment->payment_method === 'qris')
                 <div class="mt-3 rounded-xl border border-dashed border-amber-300/20 bg-[#101319] p-4 text-center">
-                    @if ($qrisImageUrl)
+                    @if ($payment->payment_redirect_url)
+                        <a href="{{ $payment->payment_redirect_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center rounded-lg bg-amber-300 px-4 py-3 text-xs font-black text-slate-950">Bayar dengan QRIS</a>
+                        <p class="mt-3 text-[10px] font-black tracking-widest text-amber-300">QRIS DINAMIS</p>
+                        <p class="mt-1 text-[9px] leading-relaxed text-slate-400">Selesaikan pembayaran pada halaman Midtrans. Status lunas akan diperbarui otomatis setelah pembayaran berhasil.</p>
+                    @elseif ($qrisImageUrl && ! $midtransQrisEnabled)
                         <img src="{{ $qrisImageUrl }}" alt="QRIS resmi untuk pembayaran pesanan" class="mx-auto max-h-72 w-auto rounded-xl bg-white p-2">
                         <p class="mt-3 text-[10px] font-black tracking-widest text-amber-300">QRIS USAHA</p>
                         <p class="mt-1 text-[9px] leading-relaxed text-slate-400">Scan QRIS resmi dan bayar tepat Rp {{ number_format($payment->amount, 0, ',', '.') }}. Pembayaran akan dikonfirmasi staf kedai.</p>
+                    @elseif ($midtransQrisEnabled && in_array($payment->payment_status, ['pending', 'failed'], true))
+                        <p class="text-[10px] leading-relaxed text-slate-400">QRIS dinamis belum tersedia untuk pesanan ini.</p>
+                        <form method="POST" action="{{ route('orders.qris.retry', $order->public_tracking_token) }}" class="mt-3">
+                            @csrf
+                            <button class="rounded-lg bg-amber-300 px-4 py-2.5 text-[10px] font-black text-slate-950">Buat QRIS</button>
+                        </form>
                     @else
                         <p class="mt-3 text-[10px] font-black tracking-widest text-amber-300">QRIS BELUM DIATUR</p>
                         <p class="mt-1 text-[9px] leading-relaxed text-slate-500">Kode QRIS resmi belum tersedia. Silakan pilih metode lain atau hubungi staf kedai.</p>
@@ -131,7 +141,7 @@
                     <p class="mt-2">Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
                 </div>
             @endif
-            @if ($payment->payment_status === 'pending')
+            @if (in_array($payment->payment_status, ['pending', 'failed'], true))
                 <div class="mt-3">
                     <button id="open-payment-method-form" type="button" class="w-full rounded-lg border border-white/10 px-3 py-2.5 text-[10px] font-semibold text-amber-200">Ganti metode pembayaran</button>
                     <form id="change-payment-method-form" method="POST" action="{{ route('orders.payment-method', $order->public_tracking_token) }}" @if (! $errors->has('payment_method') && ! $errors->has('bank_pengirim') && ! $errors->has('bank_pengirim_lainnya') && ! $errors->has('nama_pemilik_rekening') && ! $errors->has('nomor_rekening')) hidden @endif class="mt-3 space-y-3 rounded-xl border border-white/[0.07] bg-[#101319] p-3">

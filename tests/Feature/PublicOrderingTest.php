@@ -9,6 +9,8 @@ use App\Models\Product;
 use App\Models\TransferRecipient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as ClientRequest;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -121,6 +123,90 @@ class PublicOrderingTest extends TestCase
         $this->get(route('orders.track', $order->public_tracking_token))
             ->assertOk()
             ->assertSee('Siap diambil');
+    }
+
+    public function test_midtrans_qris_checkout_redirects_to_payment_and_notification_marks_it_paid(): void
+    {
+        config([
+            'payments.midtrans.server_key' => 'SB-test-server-key',
+            'payments.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
+        ]);
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
+                'token' => 'snap-token',
+                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v2/vtweb/snap-token',
+            ], 201),
+        ]);
+        $this->scanQr();
+        $product = $this->product();
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
+
+        $this->post(route('checkout.place'), [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'qris',
+        ])->assertRedirect('https://app.sandbox.midtrans.com/snap/v2/vtweb/snap-token');
+
+        $order = Order::with('payments')->firstOrFail();
+        $payment = $order->payments->first();
+        $this->assertNotNull($payment);
+        $this->assertSame('pending', $payment->payment_status);
+        $this->assertSame('https://app.sandbox.midtrans.com/snap/v2/vtweb/snap-token', $payment->payment_redirect_url);
+        $this->assertNotSame('DEMO-NOT-PROCESSED', $payment->payment_gateway_ref);
+        Http::assertSent(fn (ClientRequest $request): bool =>
+            $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
+            && $request['enabled_payments'] === ['qris']
+            && $request['transaction_details']['gross_amount'] === 18000
+            && str_contains($request['callbacks']['finish'], '/orders/track-entry/')
+        );
+
+        $notification = [
+            'order_id' => $payment->payment_gateway_ref,
+            'status_code' => '200',
+            'gross_amount' => '18000.00',
+            'transaction_status' => 'settlement',
+            'fraud_status' => 'accept',
+        ];
+        $notification['signature_key'] = hash(
+            'sha512',
+            $notification['order_id'].$notification['status_code'].$notification['gross_amount'].'SB-test-server-key'
+        );
+
+        $mismatchedAmountNotification = $notification;
+        $mismatchedAmountNotification['gross_amount'] = '18000.01';
+        $mismatchedAmountNotification['signature_key'] = hash(
+            'sha512',
+            $mismatchedAmountNotification['order_id'].$mismatchedAmountNotification['status_code'].$mismatchedAmountNotification['gross_amount'].'SB-test-server-key'
+        );
+        $this->postJson(route('api.v1.payments.midtrans.notification'), $mismatchedAmountNotification)->assertUnprocessable();
+        $this->assertDatabaseHas('payments', [
+            'payment_id' => $payment->payment_id,
+            'payment_status' => 'pending',
+        ]);
+
+        $this->postJson(route('api.v1.payments.midtrans.notification'), $notification)->assertOk();
+        $this->assertDatabaseHas('payments', [
+            'payment_id' => $payment->payment_id,
+            'payment_status' => 'paid',
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('admin.pesanan'))
+            ->assertOk()
+            ->assertSee('QRIS · Lunas otomatis');
+    }
+
+    public function test_midtrans_notification_rejects_invalid_signature(): void
+    {
+        config(['payments.midtrans.server_key' => 'SB-test-server-key']);
+        $this->postJson(route('api.v1.payments.midtrans.notification'), [
+            'order_id' => 'unknown-order',
+            'status_code' => '200',
+            'gross_amount' => '18000.00',
+            'signature_key' => str_repeat('0', 128),
+            'transaction_status' => 'settlement',
+            'fraud_status' => 'accept',
+        ])->assertForbidden();
     }
 
     public function test_customer_orders_page_is_available_after_qr_scan_and_prompts_when_empty(): void

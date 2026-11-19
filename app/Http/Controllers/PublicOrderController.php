@@ -8,12 +8,15 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\TransferRecipient;
+use App\Services\Payments\MidtransGateway;
+use App\Services\Payments\MidtransGatewayException;
 use App\Support\IndonesianBanks;
 use App\Support\StaticQris;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -71,7 +74,7 @@ class PublicOrderController extends Controller
         return back()->with('success', 'Menu dihapus dari keranjang.');
     }
 
-    public function checkout(Request $request): View|RedirectResponse
+    public function checkout(Request $request, MidtransGateway $midtrans): View|RedirectResponse
     {
         $items = $this->cartProducts($request);
         $cart = $request->session()->get(self::CART_KEY, []);
@@ -87,10 +90,11 @@ class PublicOrderController extends Controller
             'total' => $items->sum(fn (Product $product) => $product->price * $product->cart_quantity),
             'tables' => DiningTable::where('status', 'available')->orderBy('table_number')->get(),
             'transferRecipients' => TransferRecipient::orderBy('bank')->orderBy('account_name')->get(),
+            'midtransQrisEnabled' => $midtrans->isConfigured(),
         ]);
     }
 
-    public function placeOrder(Request $request): RedirectResponse
+    public function placeOrder(Request $request, MidtransGateway $midtrans): RedirectResponse
     {
         $data = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
@@ -204,10 +208,28 @@ class PublicOrderController extends Controller
         $request->session()->forget(self::CART_KEY);
         $request->session()->put('latest_public_order_token', $order->public_tracking_token);
 
+        if ($data['payment_method'] === 'qris' && $midtrans->isConfigured()) {
+            $payment = $order->payments()->firstOrFail();
+            try {
+                $midtrans->createQrisPayment($order, $payment);
+            } catch (MidtransGatewayException $exception) {
+                Log::error('Midtrans QRIS payment could not be created.', [
+                    'order_id' => $order->order_id,
+                    'reason' => $exception->getMessage(),
+                ]);
+                $payment->update(['payment_status' => 'failed']);
+
+                return redirect()->route('orders.track', $order->public_tracking_token)
+                    ->with('error', 'QRIS belum dapat dibuat. Silakan coba lagi dari halaman status pesanan.');
+            }
+
+            return redirect()->away($payment->fresh()->payment_redirect_url);
+        }
+
         return redirect()->route('orders.track', $order->public_tracking_token);
     }
 
-    public function track(string $token): Response
+    public function track(string $token, MidtransGateway $midtrans): Response
     {
         $order = Order::with(['items', 'payments'])
             ->where('public_tracking_token', $token)
@@ -215,11 +237,16 @@ class PublicOrderController extends Controller
         $qrisImageUrl = StaticQris::imageUrl();
         $transferRecipients = TransferRecipient::orderBy('bank')->orderBy('account_name')->get();
 
-        return response()->view('catalog.track', compact('order', 'qrisImageUrl', 'transferRecipients'))
+        return response()->view('catalog.track', [
+            'order' => $order,
+            'qrisImageUrl' => $qrisImageUrl,
+            'transferRecipients' => $transferRecipients,
+            'midtransQrisEnabled' => $midtrans->isConfigured(),
+        ])
             ->header('Cache-Control', 'private, no-store');
     }
 
-    public function changePaymentMethod(Request $request, string $token): RedirectResponse
+    public function changePaymentMethod(Request $request, string $token, MidtransGateway $midtrans): RedirectResponse
     {
         $data = $request->validate([
             'payment_method' => ['required', Rule::in(['qris', 'cash', 'transfer'])],
@@ -241,12 +268,12 @@ class PublicOrderController extends Controller
                 : $data['bank_pengirim'])
             : null;
 
-        DB::transaction(function () use ($data, $order, $senderBank): void {
+        DB::transaction(function () use ($data, $order, $senderBank, $midtrans): void {
             $payment = Payment::where('order_id', $order->order_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($payment->payment_status !== 'pending') {
+            if (! in_array($payment->payment_status, ['pending', 'failed'], true)) {
                 throw ValidationException::withMessages([
                     'payment_method' => 'Metode pembayaran tidak dapat diubah setelah pembayaran dikonfirmasi.',
                 ]);
@@ -254,7 +281,12 @@ class PublicOrderController extends Controller
 
             $payment->update([
                 'payment_method' => $data['payment_method'],
-                'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
+                'payment_status' => 'pending',
+                'paid_at' => null,
+                'payment_gateway_ref' => $data['payment_method'] === 'qris'
+                    ? ($midtrans->isConfigured() ? null : (StaticQris::imageUrl() === null ? 'DEMO-NOT-PROCESSED' : null))
+                    : null,
+                'payment_redirect_url' => null,
                 'bank_pengirim' => $senderBank,
                 'nama_bank' => $senderBank,
                 'nama_pemilik_rekening' => $data['payment_method'] === 'transfer'
@@ -266,7 +298,52 @@ class PublicOrderController extends Controller
             ]);
         });
 
+        if ($data['payment_method'] === 'qris' && $midtrans->isConfigured()) {
+            $payment = $order->payments()->latest('payment_id')->firstOrFail();
+            try {
+                $midtrans->createQrisPayment($order, $payment);
+            } catch (MidtransGatewayException $exception) {
+                Log::error('Midtrans QRIS payment could not be created.', [
+                    'order_id' => $order->order_id,
+                    'reason' => $exception->getMessage(),
+                ]);
+                $payment->update(['payment_status' => 'failed']);
+
+                return redirect()->route('orders.track', $token)
+                    ->with('error', 'QRIS belum dapat dibuat. Silakan coba lagi dari halaman status pesanan.');
+            }
+        }
+
         return redirect()->route('orders.track', $token)->with('success', 'Metode pembayaran berhasil diubah.');
+    }
+
+    public function retryQrisPayment(string $token, MidtransGateway $midtrans): RedirectResponse
+    {
+        abort_unless($midtrans->isConfigured(), 404);
+        $order = Order::where('public_tracking_token', $token)->firstOrFail();
+        $payment = $order->payments()->latest('payment_id')->firstOrFail();
+
+        abort_unless(
+            $payment->payment_method === 'qris' && in_array($payment->payment_status, ['pending', 'failed'], true),
+            422,
+            'Only pending QRIS payments can be retried.'
+        );
+
+        $payment->update(['payment_status' => 'pending']);
+        try {
+            $midtrans->createQrisPayment($order, $payment);
+        } catch (MidtransGatewayException $exception) {
+            Log::error('Midtrans QRIS payment retry failed.', [
+                'order_id' => $order->order_id,
+                'reason' => $exception->getMessage(),
+            ]);
+            $payment->update(['payment_status' => 'failed']);
+
+            return redirect()->route('orders.track', $token)
+                ->with('error', 'QRIS belum dapat dibuat. Silakan coba beberapa saat lagi.');
+        }
+
+        return redirect()->route('orders.track', $token)->with('success', 'QRIS pembayaran berhasil dibuat.');
     }
 
     public function orders(Request $request): Response

@@ -93,7 +93,9 @@
                         <span class="flex-1">
                             <strong class="block text-xs text-white">QRIS</strong>
                             <span class="mt-1 block text-[9px] leading-relaxed text-slate-500">
-                                @if (\App\Support\StaticQris::imageUrl())
+                                @if ($midtransQrisEnabled)
+                                    Buat QRIS khusus untuk pesanan ini. Pembayaran akan dikonfirmasi otomatis.
+                                @elseif (\App\Support\StaticQris::imageUrl())
                                     Pindai QRIS resmi setelah pesanan dibuat. Pembayaran dikonfirmasi staf.
                                 @else
                                     QRIS belum tersedia. Kamu bisa mengganti metode pembayaran di halaman status pesanan.

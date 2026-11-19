@@ -26,14 +26,6 @@
                     ];
 
                     if (auth()->user()?->role !== 'barista') {
-                        array_splice($adminMenu, 3, 0, [[
-                            'label' => 'Stok Bahan',
-                            'route' => 'admin.bahan',
-                            'icon' => 'shopping-bag',
-                        ]]);
-                    }
-
-                    if (auth()->user()?->role !== 'barista') {
                         $adminMenu[] = ['label' => 'Data Barista & Staf', 'route' => 'admin.staf', 'icon' => 'users'];
                         $adminMenu[] = ['label' => 'Penerima Transfer', 'route' => 'admin.transfer-recipient', 'icon' => 'landmark'];
                     }

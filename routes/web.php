@@ -38,6 +38,10 @@ Route::middleware(['public.qr', 'customer.qr'])->group(function () {
     Route::post('/orders/track/{token}/payment-method', [PublicOrderController::class, 'changePaymentMethod'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('orders.payment-method');
+    Route::post('/orders/track/{token}/retry-qris', [PublicOrderController::class, 'retryQrisPayment'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->middleware('throttle:5,1')
+        ->name('orders.qris.retry');
     Route::get('/orders', [PublicOrderController::class, 'orders'])->name('orders.index');
 });
 

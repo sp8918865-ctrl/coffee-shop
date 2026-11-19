@@ -40,11 +40,7 @@
                 </a>
                 <a href="{{ route('admin.menu') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#182030] transition">
                     <i data-lucide="coffee" class="w-4 h-4"></i>
-                    <span>Kelola Menu & Stok</span>
-                </a>
-                <a href="{{ route('admin.bahan') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#182030] transition">
-                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                    <span>Belanja Bahan Baku</span>
+                    <span>Kelola Menu</span>
                 </a>
             </nav>
         </div>

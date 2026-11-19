@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Payments\MidtransNotificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,10 @@ Route::get('/', fn () => response()->json([
 ]));
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
+    Route::post('/payments/midtrans/notification', MidtransNotificationController::class)
+        ->middleware('throttle:60,1')
+        ->name('payments.midtrans.notification');
+
     Route::get('/', fn () => response()->json([
         'name' => 'Warung Luwak API',
         'version' => 'v1',

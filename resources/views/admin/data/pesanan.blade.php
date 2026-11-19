@@ -105,6 +105,12 @@
                         @endif
                     </div>
                 @endif
+                @if ($payment?->payment_method === 'qris')
+                    @php($qrisIsAutomatic = $payment->payment_gateway_ref && $payment->payment_gateway_ref !== 'DEMO-NOT-PROCESSED')
+                    <div class="mb-3 rounded-lg border border-amber-500/20 bg-[#0b0f17] p-3">
+                        <p class="text-[11px] font-semibold text-slate-300">QRIS · {{ $payment->payment_status === 'paid' ? ($qrisIsAutomatic ? 'Lunas otomatis' : 'Lunas') : ($payment->payment_status === 'failed' ? 'Gagal' : ($qrisIsAutomatic ? 'Menunggu pembayaran' : 'Menunggu konfirmasi staf')) }}</p>
+                    </div>
+                @endif
                 <a href="{{ \App\Support\PanelRoute::url('admin.pesanan.receipt', $order) }}" target="_blank" rel="noopener" class="mb-2 inline-flex items-center gap-1.5 rounded border border-amber-500/40 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:border-amber-400 hover:bg-amber-500/10"><i data-lucide="receipt-text" class="h-3.5 w-3.5"></i>Buat bon</a>
                 @if ($status !== 'completed')<form method="POST" action="{{ \App\Support\PanelRoute::url('admin.pesanan.status', $order) }}" class="flex gap-2">@csrf @method('PATCH')<select name="status" class="min-w-0 flex-1 rounded bg-[#0b0f17] px-2 py-1 text-xs text-white"><option value="new" @selected($order->status === 'new')>Baru</option><option value="received" @selected($order->status === 'received')>Diterima</option><option value="brewing" @selected($order->status === 'brewing')>Diracik</option><option value="ready" @selected($order->status === 'ready')>Siap</option><option value="completed" @selected($order->status === 'completed')>Selesai</option><option value="cancelled" @selected($order->status === 'cancelled')>Batalkan</option></select><button class="rounded bg-emerald-500 px-2 py-1 text-xs font-bold text-slate-950">Ubah</button></form>@endif
                 <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.pesanan.destroy', $order) }}" onsubmit="return confirm('Hapus pesanan ini?')" class="mt-2">@csrf @method('DELETE')<button class="text-[11px] text-rose-400">Hapus pesanan</button></form>
