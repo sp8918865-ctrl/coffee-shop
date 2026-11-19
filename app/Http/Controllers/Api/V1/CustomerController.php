@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Support\IndonesianBanks;
+use App\Support\StaticQris;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -159,7 +160,9 @@ class CustomerController extends Controller
             Payment::create([
                 'order_id' => $order->order_id,
                 'payment_method' => $data['payment_method'],
-                'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
+                'payment_gateway_ref' => $data['payment_method'] === 'qris' && StaticQris::imageUrl() === null
+                    ? 'DEMO-NOT-PROCESSED'
+                    : null,
                 'amount' => $total,
                 'payment_status' => 'pending',
                 'bank_pengirim' => $senderBank,

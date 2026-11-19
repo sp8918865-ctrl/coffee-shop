@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\DiningTable;
 use App\Models\Product;
 use App\Support\IndonesianBanks;
+use App\Support\StaticQris;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -176,7 +177,9 @@ class PublicOrderController extends Controller
             Payment::create([
                 'order_id' => $order->order_id,
                 'payment_method' => $data['payment_method'],
-                'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
+                'payment_gateway_ref' => $data['payment_method'] === 'qris' && StaticQris::imageUrl() === null
+                    ? 'DEMO-NOT-PROCESSED'
+                    : null,
                 'amount' => $total,
                 'payment_status' => 'pending',
                 'bank_pengirim' => $senderBank,
@@ -207,9 +210,60 @@ class PublicOrderController extends Controller
         $order = Order::with(['items', 'payments'])
             ->where('public_tracking_token', $token)
             ->firstOrFail();
+        $qrisImageUrl = StaticQris::imageUrl();
 
-        return response()->view('catalog.track', compact('order'))
+        return response()->view('catalog.track', compact('order', 'qrisImageUrl'))
             ->header('Cache-Control', 'private, no-store');
+    }
+
+    public function changePaymentMethod(Request $request, string $token): RedirectResponse
+    {
+        $data = $request->validate([
+            'payment_method' => ['required', Rule::in(['qris', 'cash', 'transfer'])],
+            'bank_pengirim' => [
+                'required_if:payment_method,transfer',
+                'nullable',
+                'string',
+                'max:100',
+                Rule::in(IndonesianBanks::validationOptions()),
+            ],
+            'bank_pengirim_lainnya' => ['required_if:bank_pengirim,other', 'nullable', 'string', 'max:100'],
+            'nama_pemilik_rekening' => ['required_if:payment_method,transfer', 'nullable', 'string', 'max:100'],
+            'nomor_rekening' => ['required_if:payment_method,transfer', 'nullable', 'string', 'max:50'],
+        ]);
+        $order = Order::where('public_tracking_token', $token)->firstOrFail();
+        $senderBank = $data['payment_method'] === 'transfer'
+            ? ($data['bank_pengirim'] === IndonesianBanks::OTHER
+                ? trim($data['bank_pengirim_lainnya'])
+                : $data['bank_pengirim'])
+            : null;
+
+        DB::transaction(function () use ($data, $order, $senderBank): void {
+            $payment = Payment::where('order_id', $order->order_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($payment->payment_status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'payment_method' => 'Metode pembayaran tidak dapat diubah setelah pembayaran dikonfirmasi.',
+                ]);
+            }
+
+            $payment->update([
+                'payment_method' => $data['payment_method'],
+                'payment_gateway_ref' => $data['payment_method'] === 'qris' ? 'DEMO-NOT-PROCESSED' : null,
+                'bank_pengirim' => $senderBank,
+                'nama_bank' => $senderBank,
+                'nama_pemilik_rekening' => $data['payment_method'] === 'transfer'
+                    ? trim($data['nama_pemilik_rekening'])
+                    : null,
+                'nomor_rekening' => $data['payment_method'] === 'transfer'
+                    ? trim($data['nomor_rekening'])
+                    : null,
+            ]);
+        });
+
+        return redirect()->route('orders.track', $token)->with('success', 'Metode pembayaran berhasil diubah.');
     }
 
     public function orders(Request $request): Response

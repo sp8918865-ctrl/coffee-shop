@@ -90,7 +90,16 @@
                 <div id="payment-method-options" class="mt-2 space-y-2">
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#101319] p-3 has-[:checked]:border-amber-300/60 has-[:checked]:bg-amber-300/[0.08]">
                         <input type="radio" name="payment_method" value="qris" @checked(old('payment_method', 'qris') === 'qris') class="mt-0.5 accent-amber-300">
-                        <span class="flex-1"><strong class="block text-xs text-white">QRIS simulasi</strong><span class="mt-1 block text-[9px] leading-relaxed text-slate-500">Belum terhubung ke penyedia pembayaran. Tidak ada QR aktif atau tagihan sungguhan.</span></span>
+                        <span class="flex-1">
+                            <strong class="block text-xs text-white">QRIS</strong>
+                            <span class="mt-1 block text-[9px] leading-relaxed text-slate-500">
+                                @if (\App\Support\StaticQris::imageUrl())
+                                    Pindai QRIS resmi setelah pesanan dibuat. Pembayaran dikonfirmasi staf.
+                                @else
+                                    QRIS belum tersedia. Kamu bisa mengganti metode pembayaran di halaman status pesanan.
+                                @endif
+                            </span>
+                        </span>
                         <i data-lucide="qr-code" class="h-5 w-5 text-amber-300"></i>
                     </label>
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-[#101319] p-3 has-[:checked]:border-amber-300/60 has-[:checked]:bg-amber-300/[0.08]">

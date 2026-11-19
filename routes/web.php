@@ -35,6 +35,9 @@ Route::middleware(['public.qr', 'customer.qr'])->group(function () {
     Route::get('/orders/track/{token}', [PublicOrderController::class, 'track'])
         ->where('token', '[A-Za-z0-9]{64}')
         ->name('orders.track');
+    Route::post('/orders/track/{token}/payment-method', [PublicOrderController::class, 'changePaymentMethod'])
+        ->where('token', '[A-Za-z0-9]{64}')
+        ->name('orders.payment-method');
     Route::get('/orders', [PublicOrderController::class, 'orders'])->name('orders.index');
 });
 

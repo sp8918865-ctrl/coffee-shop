@@ -95,7 +95,7 @@
         @endif
     @endif
     @if ($paymentMethod === 'qris' && $payment?->payment_status !== 'paid')
-        <p class="muted">QRIS simulasi; pembayaran belum diproses.</p>
+        <p class="muted">{{ \App\Support\StaticQris::imageUrl() ? 'QRIS statis; periksa pembayaran masuk sebelum mengonfirmasi.' : 'QRIS belum tersedia; gunakan metode pembayaran lain.' }}</p>
     @endif
 
     <hr class="rule">

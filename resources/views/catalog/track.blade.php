@@ -96,15 +96,14 @@
             @endif
             @if ($payment->payment_method === 'qris')
                 <div class="mt-3 rounded-xl border border-dashed border-amber-300/20 bg-[#101319] p-4 text-center">
-                    <div class="mx-auto grid h-32 w-32 place-items-center rounded-xl bg-white text-slate-950">
-                        <div class="grid h-24 w-24 grid-cols-5 grid-rows-5 gap-1 opacity-20" aria-hidden="true">
-                            @for ($pixel = 0; $pixel < 25; $pixel++)
-                                <span class="{{ ($pixel * 7 + $pixel % 4) % 3 ? 'bg-slate-900' : 'bg-transparent' }}"></span>
-                            @endfor
-                        </div>
-                    </div>
-                    <p class="mt-3 text-[10px] font-black tracking-widest text-amber-300">QRIS SIMULASI</p>
-                    <p class="mt-1 text-[9px] leading-relaxed text-slate-500">Ini bukan kode QR pembayaran aktif. Pembayaran belum diproses dan tidak ada tagihan sungguhan.</p>
+                    @if ($qrisImageUrl)
+                        <img src="{{ $qrisImageUrl }}" alt="QRIS resmi untuk pembayaran pesanan" class="mx-auto max-h-72 w-auto rounded-xl bg-white p-2">
+                        <p class="mt-3 text-[10px] font-black tracking-widest text-amber-300">QRIS USAHA</p>
+                        <p class="mt-1 text-[9px] leading-relaxed text-slate-400">Scan QRIS resmi dan bayar tepat Rp {{ number_format($payment->amount, 0, ',', '.') }}. Pembayaran akan dikonfirmasi staf kedai.</p>
+                    @else
+                        <p class="mt-3 text-[10px] font-black tracking-widest text-amber-300">QRIS BELUM DIATUR</p>
+                        <p class="mt-1 text-[9px] leading-relaxed text-slate-500">Kode QRIS resmi belum tersedia. Silakan pilih metode lain atau hubungi staf kedai.</p>
+                    @endif
                 </div>
             @elseif ($payment->payment_method === 'cash')
                 <p class="mt-3 rounded-xl bg-[#101319] p-3 text-[10px] leading-relaxed text-slate-400">Silakan serahkan uang tunai kepada staf kedai. Bon ini merupakan rincian pesanan; pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
@@ -122,6 +121,58 @@
                     <p class="mt-1">Silakan minta detail rekening tujuan kepada staf kedai. Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
                 </div>
             @endif
+            @if ($payment->payment_status === 'pending')
+                <div class="mt-3">
+                    <button id="open-payment-method-form" type="button" class="w-full rounded-lg border border-white/10 px-3 py-2.5 text-[10px] font-semibold text-amber-200">Ganti metode pembayaran</button>
+                    <form id="change-payment-method-form" method="POST" action="{{ route('orders.payment-method', $order->public_tracking_token) }}" @if (! $errors->has('payment_method') && ! $errors->has('bank_pengirim') && ! $errors->has('bank_pengirim_lainnya') && ! $errors->has('nama_pemilik_rekening') && ! $errors->has('nomor_rekening')) hidden @endif class="mt-3 space-y-3 rounded-xl border border-white/[0.07] bg-[#101319] p-3">
+                        @csrf
+                        <fieldset>
+                            <legend class="text-[10px] font-semibold text-slate-300">Pilih metode pembayaran</legend>
+                            <div class="mt-2 grid grid-cols-3 gap-2">
+                                @foreach (['qris' => 'QRIS', 'cash' => 'Tunai', 'transfer' => 'Transfer'] as $method => $label)
+                                    <label class="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-white/10 px-2 py-2 text-[10px] has-[:checked]:border-amber-300/60 has-[:checked]:bg-amber-300/[0.08]">
+                                        <input type="radio" name="payment_method" value="{{ $method }}" @checked(old('payment_method', $payment->payment_method) === $method) class="accent-amber-300">
+                                        <span class="text-white">{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('payment_method')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                        </fieldset>
+                        <div id="change-transfer-fields" @if (old('payment_method', $payment->payment_method) !== 'transfer') hidden @endif class="space-y-3">
+                            <div>
+                                <label for="change-bank" class="text-[10px] font-semibold text-slate-300">Bank pengirim</label>
+                                <select id="change-bank" name="bank_pengirim" class="mt-1 w-full rounded-lg border border-white/10 bg-[#191c22] px-3 py-2.5 text-xs text-white">
+                                    <option value="">Pilih bank</option>
+                                    @foreach (\App\Support\IndonesianBanks::OPTIONS as $bank)
+                                        <option value="{{ $bank }}" @selected(old('bank_pengirim', $payment->bank_pengirim) === $bank)>{{ $bank }}</option>
+                                    @endforeach
+                                    <option value="{{ \App\Support\IndonesianBanks::OTHER }}" @selected(old('bank_pengirim') === \App\Support\IndonesianBanks::OTHER)>Bank lainnya</option>
+                                </select>
+                                @error('bank_pengirim')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                            </div>
+                            <div id="change-other-bank-field" @if (old('bank_pengirim', $payment->bank_pengirim) !== \App\Support\IndonesianBanks::OTHER) hidden @endif>
+                                <label for="change-other-bank" class="text-[10px] font-semibold text-slate-300">Nama bank</label>
+                                <input id="change-other-bank" name="bank_pengirim_lainnya" value="{{ old('bank_pengirim_lainnya') }}" maxlength="100" class="mt-1 w-full rounded-lg border border-white/10 bg-[#191c22] px-3 py-2.5 text-xs text-white">
+                                @error('bank_pengirim_lainnya')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label for="change-account-name" class="text-[10px] font-semibold text-slate-300">Nama pemilik rekening</label>
+                                <input id="change-account-name" name="nama_pemilik_rekening" value="{{ old('nama_pemilik_rekening', $payment->nama_pemilik_rekening) }}" maxlength="100" class="mt-1 w-full rounded-lg border border-white/10 bg-[#191c22] px-3 py-2.5 text-xs text-white">
+                                @error('nama_pemilik_rekening')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label for="change-account-number" class="text-[10px] font-semibold text-slate-300">Nomor rekening</label>
+                                <input id="change-account-number" name="nomor_rekening" value="{{ old('nomor_rekening', $payment->nomor_rekening) }}" maxlength="50" inputmode="numeric" class="mt-1 w-full rounded-lg border border-white/10 bg-[#191c22] px-3 py-2.5 text-xs text-white">
+                                @error('nomor_rekening')<p class="mt-1 text-[10px] text-rose-300">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="submit" class="flex-1 rounded-lg bg-amber-300 px-3 py-2.5 text-[10px] font-black text-slate-950">Simpan metode</button>
+                            <button id="cancel-payment-method-change" type="button" class="rounded-lg border border-white/10 px-3 py-2.5 text-[10px] font-semibold text-slate-300">Batal</button>
+                        </div>
+                    </form>
+                </div>
+            @endif
             <button type="button" onclick="window.print()" class="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-semibold text-amber-200 print:hidden">
                 <i data-lucide="printer" class="h-4 w-4"></i> Cetak bon
             </button>
@@ -130,6 +181,41 @@
 @endsection
 
 @push('scripts')
+    <script>
+        const changePaymentForm = document.getElementById('change-payment-method-form');
+        if (changePaymentForm) {
+            const openPaymentForm = document.getElementById('open-payment-method-form');
+            const cancelPaymentForm = document.getElementById('cancel-payment-method-change');
+            const transferFields = document.getElementById('change-transfer-fields');
+            const bankSelect = document.getElementById('change-bank');
+            const otherBankField = document.getElementById('change-other-bank-field');
+            const otherBankInput = document.getElementById('change-other-bank');
+            const accountName = document.getElementById('change-account-name');
+            const accountNumber = document.getElementById('change-account-number');
+
+            function syncPaymentChangeFields() {
+                const isTransfer = changePaymentForm.querySelector('input[name="payment_method"]:checked')?.value === 'transfer';
+                transferFields.hidden = !isTransfer;
+                bankSelect.required = isTransfer;
+                otherBankField.hidden = !isTransfer || bankSelect.value !== '{{ \App\Support\IndonesianBanks::OTHER }}';
+                otherBankInput.required = isTransfer && bankSelect.value === '{{ \App\Support\IndonesianBanks::OTHER }}';
+                accountName.required = isTransfer;
+                accountNumber.required = isTransfer;
+            }
+
+            openPaymentForm.addEventListener('click', () => {
+                changePaymentForm.hidden = false;
+                openPaymentForm.hidden = true;
+            });
+            cancelPaymentForm.addEventListener('click', () => {
+                changePaymentForm.hidden = true;
+                openPaymentForm.hidden = false;
+            });
+            changePaymentForm.querySelectorAll('input[name="payment_method"]').forEach(input => input.addEventListener('change', syncPaymentChangeFields));
+            bankSelect.addEventListener('change', syncPaymentChangeFields);
+            syncPaymentChangeFields();
+        }
+    </script>
     <style>
         @media print {
             body, .min-h-screen, main { background: #fff !important; color: #111 !important; }

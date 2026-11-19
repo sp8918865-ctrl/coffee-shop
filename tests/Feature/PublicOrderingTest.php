@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -34,7 +35,7 @@ class PublicOrderingTest extends TestCase
         $this->get(route('checkout'))
             ->assertOk()
             ->assertSee('Kopi Susu')
-            ->assertSee('QRIS simulasi')
+            ->assertSee('QRIS')
             ->assertSee('Bayar tunai di kedai')
             ->assertSee('Transfer bank')
             ->assertSee('Rp 18.000')
@@ -98,10 +99,10 @@ class PublicOrderingTest extends TestCase
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertSee('name="referrer" content="no-referrer"', false)
-            ->assertSee('QRIS SIMULASI')
+            ->assertSee('QRIS BELUM DIATUR')
             ->assertSee('Bon pembayaran')
             ->assertSee('Cetak bon')
-            ->assertSee('bukan kode QR pembayaran')
+            ->assertSee('Kode QRIS resmi belum tersedia')
             ->assertSee('Belum dibayar')
             ->assertSee('Pesanan diterima');
 
@@ -215,6 +216,99 @@ class PublicOrderingTest extends TestCase
             ->assertSee('Bank yang akan kamu gunakan: <strong class="text-white">BCA</strong>.', false)
             ->assertSee('minta detail rekening tujuan kepada staf kedai')
             ->assertSee('Belum dibayar');
+    }
+
+    public function test_guest_can_change_payment_method_on_the_existing_pending_order(): void
+    {
+        $this->scanQr();
+        $product = $this->product();
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
+
+        $this->post(route('checkout.place'), [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'qris',
+        ])->assertRedirect();
+
+        $order = Order::with('payments')->firstOrFail();
+        $this->get(route('orders.track', $order->public_tracking_token))
+            ->assertOk()
+            ->assertSee('Ganti metode pembayaran')
+            ->assertSee('QRIS BELUM DIATUR');
+
+        $this->post(route('orders.payment-method', $order->public_tracking_token), [
+            'payment_method' => 'transfer',
+            'bank_pengirim' => 'BCA',
+            'nama_pemilik_rekening' => 'Ayu Rahma',
+            'nomor_rekening' => '1234567890',
+        ])->assertRedirect(route('orders.track', $order->public_tracking_token));
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->order_id,
+            'payment_method' => 'transfer',
+            'payment_status' => 'pending',
+            'bank_pengirim' => 'BCA',
+            'nama_pemilik_rekening' => 'Ayu Rahma',
+            'nomor_rekening' => '1234567890',
+            'payment_gateway_ref' => null,
+        ]);
+        $this->get(route('orders.track', $order->public_tracking_token))
+            ->assertOk()
+            ->assertSee('Bank yang akan kamu gunakan: <strong class="text-white">BCA</strong>.', false);
+    }
+
+    public function test_customer_tracking_page_displays_configured_static_qris_image(): void
+    {
+        Storage::fake('public');
+        config(['payments.qris.static_image' => 'qris/warung.png']);
+        Storage::disk('public')->put('qris/warung.png', 'official-qris-image');
+        $this->scanQr();
+        $product = $this->product();
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
+
+        $this->post(route('checkout.place'), [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'qris',
+        ])->assertRedirect();
+
+        $order = Order::firstOrFail();
+        $this->get(route('orders.track', $order->public_tracking_token))
+            ->assertOk()
+            ->assertSee('QRIS USAHA')
+            ->assertSee('qris/warung.png')
+            ->assertSee('Scan QRIS resmi');
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->order_id,
+            'payment_gateway_ref' => null,
+        ]);
+    }
+
+    public function test_customer_cannot_change_payment_method_after_payment_is_confirmed(): void
+    {
+        $this->scanQr();
+        $product = $this->product();
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
+        $this->post(route('checkout.place'), [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'qris',
+        ])->assertRedirect();
+
+        $order = Order::with('payments')->firstOrFail();
+        $order->payments->first()->update(['payment_status' => 'paid']);
+
+        $this->from(route('orders.track', $order->public_tracking_token))
+            ->post(route('orders.payment-method', $order->public_tracking_token), [
+                'payment_method' => 'cash',
+            ])
+            ->assertSessionHasErrors('payment_method');
+
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->order_id,
+            'payment_method' => 'qris',
+            'payment_status' => 'paid',
+        ]);
     }
 
     public function test_transfer_requires_a_bank_and_accepts_a_customer_entered_bank(): void
