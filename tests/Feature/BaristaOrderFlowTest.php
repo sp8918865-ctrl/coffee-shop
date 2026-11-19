@@ -116,6 +116,46 @@ class BaristaOrderFlowTest extends TestCase
         ]);
     }
 
+    public function test_order_notifications_only_include_orders_created_after_the_page_was_opened(): void
+    {
+        $barista = User::factory()->create(['role' => 'barista']);
+        $existingOrder = Order::create([
+            'order_number' => 'ORD-EXISTING-001',
+            'order_type' => 'take_away',
+            'order_status' => 'pending',
+            'total_amount' => 18000,
+        ]);
+
+        $this->actingAs($barista, 'barista')
+            ->get(route('barista.pesanan'))
+            ->assertOk()
+            ->assertSee('data-cursor="'.$existingOrder->order_id.'"', false);
+
+        $this->getJson(route('barista.pesanan.notifications', ['after' => $existingOrder->order_id]))
+            ->assertOk()
+            ->assertExactJson([
+                'cursor' => $existingOrder->order_id,
+                'orders' => [],
+            ]);
+
+        $newOrder = Order::create([
+            'order_number' => 'ORD-NEW-001',
+            'customer_name' => 'Ayu',
+            'order_type' => 'dine_in',
+            'table_number' => '07',
+            'order_status' => 'pending',
+            'total_amount' => 36000,
+        ]);
+
+        $this->getJson(route('barista.pesanan.notifications', ['after' => $existingOrder->order_id]))
+            ->assertOk()
+            ->assertJsonPath('cursor', $newOrder->order_id)
+            ->assertJsonCount(1, 'orders')
+            ->assertJsonPath('orders.0.order_number', 'ORD-NEW-001')
+            ->assertJsonPath('orders.0.customer_name', 'Ayu')
+            ->assertJsonPath('orders.0.total_amount', 36000);
+    }
+
     public function test_barista_can_print_a_58mm_receipt_with_recorded_payment_details(): void
     {
         $barista = User::factory()->create(['role' => 'barista']);

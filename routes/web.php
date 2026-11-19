@@ -130,6 +130,7 @@ $registerPanelRoutes = function (string $prefix, string $guard, string $accessMi
             Route::put('/meja/{table}', [DiningTableController::class, 'update'])->name('tables.update');
             Route::delete('/meja/{table}', [DiningTableController::class, 'destroy'])->name('tables.destroy');
             Route::get('/pesanan', [PesananController::class, 'index'])->name('pesanan');
+            Route::get('/pesanan/notifikasi', [PesananController::class, 'notifications'])->name('pesanan.notifications');
             Route::get('/pesanan/{order}/bon', [PesananController::class, 'receipt'])->name('pesanan.receipt');
             Route::post('/pesanan/{order}/bon/pembayaran-tunai', [PesananController::class, 'recordCashPayment'])->name('pesanan.cash-payment');
             Route::post('/pesanan/{order}/bon/pembayaran-transfer', [PesananController::class, 'recordTransferPayment'])->name('pesanan.transfer-payment');

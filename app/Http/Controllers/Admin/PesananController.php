@@ -23,6 +23,7 @@ class PesananController extends Controller
 {
     public function index(): View
     {
+        $latestOrderId = (int) (Order::max('order_id') ?? 0);
         $pesananBaru = Order::with(['items', 'payments'])->whereIn('order_status', ['pending', 'received'])->latest()->get();
         $pesananBrewing = Order::with(['items', 'payments'])->where('order_status', 'in_progress')->latest()->get();
         $pesananReady = Order::with(['items', 'payments'])->where('order_status', 'ready')->latest()->get();
@@ -31,8 +32,31 @@ class PesananController extends Controller
         $tables = DiningTable::where('status', 'available')->orderBy('table_number')->get();
 
         return view('admin.data.pesanan', compact(
-            'pesananBaru', 'pesananBrewing', 'pesananReady', 'pesananSelesai', 'products', 'tables'
+            'pesananBaru', 'pesananBrewing', 'pesananReady', 'pesananSelesai', 'products', 'tables', 'latestOrderId'
         ));
+    }
+
+    public function notifications(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'after' => ['sometimes', 'integer', 'min:0'],
+        ]);
+        $latestOrderId = (int) (Order::max('order_id') ?? 0);
+
+        if (! array_key_exists('after', $data)) {
+            return response()->json(['cursor' => $latestOrderId, 'orders' => []]);
+        }
+
+        $orders = Order::query()
+            ->where('order_id', '>', (int) $data['after'])
+            ->orderBy('order_id')
+            ->limit(20)
+            ->get(['order_id', 'order_number', 'customer_name', 'order_type', 'table_number', 'total_amount']);
+
+        return response()->json([
+            'cursor' => $orders->isNotEmpty() ? (int) $orders->last()->order_id : $latestOrderId,
+            'orders' => $orders,
+        ]);
     }
 
     public function receipt(Order $order): View

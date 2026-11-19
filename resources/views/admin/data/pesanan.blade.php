@@ -5,6 +5,23 @@
 
 @section('content')
 <div class="space-y-5">
+    <div
+        data-order-notifications
+        data-endpoint="{{ \App\Support\PanelRoute::url('admin.pesanan.notifications') }}"
+        data-cursor="{{ $latestOrderId }}"
+        data-order-url="{{ \App\Support\PanelRoute::url('admin.pesanan') }}"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-3"
+    >
+        <p class="text-xs text-slate-300">Notifikasi pesanan baru aktif selama halaman ini terbuka.</p>
+        <button type="button" data-enable-order-notifications class="rounded-lg border border-amber-500/40 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/10">
+            Aktifkan notifikasi browser
+        </button>
+    </div>
+    <div data-order-notification-toast role="status" aria-live="polite" hidden class="fixed right-5 top-5 z-50 max-w-sm rounded-xl border border-amber-500/40 bg-[#121824] p-4 shadow-xl">
+        <p data-order-notification-title class="font-bold text-amber-300"></p>
+        <p data-order-notification-message class="mt-1 text-xs text-slate-300"></p>
+        <a href="{{ \App\Support\PanelRoute::url('admin.pesanan') }}" class="mt-3 inline-block text-xs font-semibold text-white underline">Buka daftar pesanan</a>
+    </div>
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-xl border border-amber-500/20 bg-[#121824] p-4"><span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">PESANAN BARU</span><strong class="mt-2 block text-2xl font-extrabold text-amber-400">{{ $pesananBaru->count() }}</strong><span class="text-[10px] text-slate-500">Menunggu diproses</span></div>
         <div class="rounded-xl border border-emerald-500/20 bg-[#121824] p-4"><span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">SEDANG DIRACIK</span><strong class="mt-2 block text-2xl font-extrabold text-emerald-400">{{ $pesananBrewing->count() }}</strong><span class="text-[10px] text-slate-500">Di stasiun bar</span></div>
@@ -228,5 +245,83 @@
         filterOrders();
         orderSearch.focus();
     });
+
+    const notificationPanel = document.querySelector('[data-order-notifications]');
+    if (notificationPanel) {
+        const permissionButton = notificationPanel.querySelector('[data-enable-order-notifications]');
+        const toast = document.querySelector('[data-order-notification-toast]');
+        const toastTitle = toast.querySelector('[data-order-notification-title]');
+        const toastMessage = toast.querySelector('[data-order-notification-message]');
+        let notificationCursor = Number(notificationPanel.dataset.cursor);
+        let toastTimer;
+
+        if (!('Notification' in window)) {
+            permissionButton.hidden = true;
+        } else if (Notification.permission === 'granted') {
+            permissionButton.textContent = 'Notifikasi browser aktif';
+            permissionButton.disabled = true;
+        } else if (Notification.permission === 'denied') {
+            permissionButton.textContent = 'Notifikasi browser diblokir';
+            permissionButton.disabled = true;
+        }
+
+        permissionButton.addEventListener('click', async () => {
+            const permission = await Notification.requestPermission();
+            permissionButton.textContent = permission === 'granted'
+                ? 'Notifikasi browser aktif'
+                : 'Izin notifikasi tidak diberikan';
+            permissionButton.disabled = true;
+        });
+
+        function showOrderNotification(orders) {
+            const latestOrder = orders[orders.length - 1];
+            const orderLabel = latestOrder.order_number || `#${latestOrder.order_id}`;
+            const customer = latestOrder.customer_name || 'Pelanggan';
+            const quantityLabel = orders.length > 1 ? `${orders.length} pesanan baru masuk.` : 'Pesanan baru masuk.';
+
+            toastTitle.textContent = quantityLabel;
+            toastMessage.textContent = `${orderLabel} dari ${customer}`;
+            toast.hidden = false;
+            window.clearTimeout(toastTimer);
+            toastTimer = window.setTimeout(() => {
+                toast.hidden = true;
+            }, 10000);
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const notification = new Notification(quantityLabel, {
+                    body: `${orderLabel} dari ${customer}`,
+                    icon: '/logo.png',
+                });
+                notification.onclick = () => {
+                    window.focus();
+                    window.location.href = notificationPanel.dataset.orderUrl;
+                };
+            }
+        }
+
+        async function checkForNewOrders() {
+            try {
+                const response = await fetch(`${notificationPanel.dataset.endpoint}?after=${notificationCursor}`, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+                if (!response.ok) {
+                    throw new Error('Gagal memeriksa pesanan baru.');
+                }
+
+                const result = await response.json();
+                notificationCursor = Number(result.cursor);
+                if (result.orders.length > 0) {
+                    showOrderNotification(result.orders);
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                window.setTimeout(checkForNewOrders, 5000);
+            }
+        }
+
+        window.setTimeout(checkForNewOrders, 5000);
+    }
 </script>
 @endsection
