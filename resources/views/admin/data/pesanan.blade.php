@@ -90,6 +90,13 @@
                 @if ($payment?->payment_method === 'transfer')
                     <div class="mb-3 rounded-lg border border-sky-500/20 bg-[#0b0f17] p-3">
                         <p class="text-[11px] font-semibold text-slate-300">Transfer bank · {{ $payment->payment_status === 'paid' ? 'Lunas' : 'Menunggu konfirmasi' }}</p>
+                        @if ($payment->bank_pengirim || $payment->nama_pemilik_rekening || $payment->nomor_rekening)
+                            <div class="mt-2 space-y-1 border-t border-sky-500/10 pt-2 text-[10px] text-slate-400">
+                                @if ($payment->bank_pengirim)<p>Bank pengirim: <strong class="text-sky-200">{{ $payment->bank_pengirim }}</strong></p>@endif
+                                @if ($payment->nama_pemilik_rekening)<p>Pemilik rekening: <strong class="text-sky-200">{{ $payment->nama_pemilik_rekening }}</strong></p>@endif
+                                @if ($payment->nomor_rekening)<p>Nomor rekening: <strong class="text-sky-200">{{ $payment->nomor_rekening }}</strong></p>@endif
+                            </div>
+                        @endif
                         @if ($payment->payment_status !== 'paid')
                             <form method="POST" action="{{ \App\Support\PanelRoute::url('admin.pesanan.transfer-payment', $order) }}" class="mt-2" onsubmit="return confirm('Konfirmasi bahwa transfer untuk pesanan ini sudah diterima?')">
                                 @csrf
