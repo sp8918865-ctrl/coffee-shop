@@ -24,8 +24,24 @@
         ];
     @endphp
 
-    <div class="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <p class="text-sm text-slate-400">Ringkasan transaksi selesai tahun {{ $now->year }}</p>
+    <div class="flex flex-wrap items-end justify-between gap-3 print:hidden">
+        <div>
+            <p class="text-sm text-slate-400">Ringkasan transaksi selesai tahun {{ $now->year }}</p>
+            <form method="GET" action="{{ route('admin.sales-report') }}" class="mt-3 flex items-end gap-2">
+                <label class="text-xs text-slate-300">
+                    Metode pembayaran
+                    <select name="payment_method" class="mt-1 block min-w-40 rounded-lg border border-[#26334d] bg-[#121824] px-3 py-2 text-xs text-white">
+                        @foreach ($paymentMethods as $value => $label)
+                            <option value="{{ $value }}" @selected($paymentMethod === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <button type="submit" class="rounded-lg bg-sky-500 px-3 py-2 text-xs font-bold text-slate-950 hover:bg-sky-400">Terapkan</button>
+                @if ($paymentMethod !== '')
+                    <a href="{{ route('admin.sales-report') }}" class="rounded-lg border border-[#26334d] px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white">Reset</a>
+                @endif
+            </form>
+        </div>
         <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400">
             <i data-lucide="printer" class="h-4 w-4"></i>
             Cetak laporan
@@ -57,6 +73,7 @@
                 <thead class="bg-[#121824] text-slate-300 print:bg-gray-100 print:text-black">
                     <tr>
                         <th class="p-3">No. Pesanan</th>
+                        <th class="p-3">Metode Pembayaran</th>
                         <th class="p-3">Tahun</th>
                         <th class="p-3">Bulan</th>
                         <th class="p-3">Tanggal</th>
@@ -70,6 +87,11 @@
                     @forelse ($orders as $order)
                         <tr class="text-slate-200 print:text-black">
                             <td class="whitespace-nowrap p-3">{{ $order->order_number ?? '#'.$order->order_id }}</td>
+                            @php
+                                $payment = $order->payments->sortByDesc('payment_id')->first();
+                                $paymentLabels = ['cash' => 'Tunai', 'qris' => 'QRIS', 'transfer' => 'Transfer'];
+                            @endphp
+                            <td class="whitespace-nowrap p-3">{{ $payment ? ($paymentLabels[$payment->payment_method] ?? ucfirst($payment->payment_method)) : '-' }}</td>
                             <td class="p-3">{{ $order->created_at->format('Y') }}</td>
                             <td class="p-3">{{ $months[(int) $order->created_at->format('n')] }}</td>
                             <td class="p-3">{{ $order->created_at->format('d') }}</td>
@@ -80,14 +102,14 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="p-6 text-center text-slate-400 print:text-black">Belum ada transaksi selesai pada tahun ini.</td>
+                            <td colspan="9" class="p-6 text-center text-slate-400 print:text-black">Belum ada transaksi selesai pada tahun ini.</td>
                         </tr>
                     @endforelse
                 </tbody>
                 @if ($orders->isNotEmpty())
                     <tfoot class="border-t-2 border-[#1e293b] bg-[#121824] font-bold text-white print:border-gray-500 print:bg-gray-100 print:text-black">
                         <tr>
-                            <td colspan="7" class="p-3">Total penjualan tahun {{ $now->year }}</td>
+                            <td colspan="8" class="p-3">Total penjualan tahun {{ $now->year }}</td>
                             <td class="whitespace-nowrap p-3 text-right">Rp {{ number_format($orders->sum('total_amount'), 0, ',', '.') }}</td>
                         </tr>
                     </tfoot>

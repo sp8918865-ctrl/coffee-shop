@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -108,11 +109,46 @@ class DashboardSalesTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_admin_can_filter_sales_report_by_payment_method(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-05 12:27:00'));
+        $this->actingAs(User::factory()->create(['role' => 'owner']));
+
+        $cashOrder = $this->recordOrder('SLS-CASH', 'completed', Carbon::parse('2026-11-05 09:07:00'), 25000);
+        $qrisOrder = $this->recordOrder('SLS-QRIS', 'completed', Carbon::parse('2026-11-05 10:07:00'), 40000);
+        $this->recordPayment($cashOrder, 'cash', 25000);
+        $this->recordPayment($qrisOrder, 'qris', 40000);
+
+        $this->get(route('admin.sales-report', ['payment_method' => 'cash']))
+            ->assertOk()
+            ->assertSee('Metode pembayaran')
+            ->assertSee('Tunai')
+            ->assertSee('SLS-CASH')
+            ->assertDontSee('SLS-QRIS');
+
+        $this->get(route('admin.sales-report', ['payment_method' => 'qris']))
+            ->assertOk()
+            ->assertSee('SLS-QRIS')
+            ->assertDontSee('SLS-CASH');
+
+        Carbon::setTestNow();
+    }
+
     public function test_barista_cannot_access_sales_report(): void
     {
         $this->actingAs(User::factory()->create(['role' => 'barista']), 'barista')
             ->get(route('admin.sales-report'))
             ->assertRedirect(route('login.admin'));
+    }
+
+    private function recordPayment(Order $order, string $method, int $amount): void
+    {
+        Payment::create([
+            'order_id' => $order->order_id,
+            'payment_method' => $method,
+            'amount' => $amount,
+            'payment_status' => 'paid',
+        ]);
     }
 
     private function recordOrder(string $number, string $status, \Illuminate\Support\Carbon $createdAt, int $total): Order

@@ -7,6 +7,7 @@ use App\Models\Ingredient;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -90,10 +91,22 @@ class DashboardController extends Controller
         ));
     }
 
-    public function salesReport(): View
+    public function salesReport(Request $request): View
     {
         $now = now();
         $completedOrders = Order::where('order_status', 'completed');
+        $paymentMethod = $request->string('payment_method')->toString();
+
+        if (! in_array($paymentMethod, ['cash', 'qris', 'transfer'], true)) {
+            $paymentMethod = '';
+        }
+
+        if ($paymentMethod !== '') {
+            $completedOrders->whereHas('payments', function ($query) use ($paymentMethod): void {
+                $query->where('payment_method', $paymentMethod);
+            });
+        }
+
         $salesSummary = [
             '7 hari terakhir' => (clone $completedOrders)
                 ->whereBetween('created_at', [$now->copy()->subDays(6)->startOfDay(), $now])
@@ -107,9 +120,17 @@ class DashboardController extends Controller
         ];
         $orders = (clone $completedOrders)
             ->whereBetween('created_at', [$now->copy()->startOfYear(), $now])
+            ->with('payments')
             ->latest('created_at')
             ->get();
 
-        return view('admin.sales-report', compact('now', 'salesSummary', 'orders'));
+        $paymentMethods = [
+            '' => 'Semua metode',
+            'cash' => 'Tunai',
+            'qris' => 'QRIS',
+            'transfer' => 'Transfer',
+        ];
+
+        return view('admin.sales-report', compact('now', 'salesSummary', 'orders', 'paymentMethod', 'paymentMethods'));
     }
 }
