@@ -7,12 +7,12 @@ use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\PesananController;
 use App\Http\Controllers\Admin\PublicQrController;
 use App\Http\Controllers\Admin\StafController;
+use App\Http\Controllers\Admin\TransferRecipientController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\PublicOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\URL;
 
 Route::get('/menu/qr-entry', function (Request $request) {
     $request->session()->put('customer_qr_access', true);
@@ -147,6 +147,10 @@ $registerPanelRoutes = function (string $prefix, string $guard, string $accessMi
             if ($includeStaff) {
                 Route::middleware('manager')->group(function (): void {
                     Route::get('/laporan-penjualan', [DashboardController::class, 'salesReport'])->name('sales-report');
+                    Route::get('/penerima-transfer', [TransferRecipientController::class, 'index'])->name('transfer-recipient');
+                    Route::post('/penerima-transfer', [TransferRecipientController::class, 'store'])->name('transfer-recipient.store');
+                    Route::put('/penerima-transfer/{recipient}', [TransferRecipientController::class, 'update'])->name('transfer-recipient.update');
+                    Route::delete('/penerima-transfer/{recipient}', [TransferRecipientController::class, 'destroy'])->name('transfer-recipient.destroy');
                     Route::get('/staf', [StafController::class, 'index'])->name('staf');
                     Route::post('/staf', [StafController::class, 'store'])->name('staf.store');
                     Route::put('/staf/{user}', [StafController::class, 'update'])->name('staf.update');

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DiningTable;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
-use App\Models\DiningTable;
 use App\Models\Product;
+use App\Models\TransferRecipient;
 use App\Support\IndonesianBanks;
 use App\Support\StaticQris;
 use Illuminate\Http\RedirectResponse;
@@ -85,6 +86,7 @@ class PublicOrderController extends Controller
             'items' => $items,
             'total' => $items->sum(fn (Product $product) => $product->price * $product->cart_quantity),
             'tables' => DiningTable::where('status', 'available')->orderBy('table_number')->get(),
+            'transferRecipients' => TransferRecipient::orderBy('bank')->orderBy('account_name')->get(),
         ]);
     }
 
@@ -211,8 +213,9 @@ class PublicOrderController extends Controller
             ->where('public_tracking_token', $token)
             ->firstOrFail();
         $qrisImageUrl = StaticQris::imageUrl();
+        $transferRecipients = TransferRecipient::orderBy('bank')->orderBy('account_name')->get();
 
-        return response()->view('catalog.track', compact('order', 'qrisImageUrl'))
+        return response()->view('catalog.track', compact('order', 'qrisImageUrl', 'transferRecipients'))
             ->header('Cache-Control', 'private, no-store');
     }
 

@@ -165,7 +165,19 @@
                         </div>
                     </div>
                 </div>
-                <p class="mt-3 text-[9px] leading-relaxed text-slate-400">Setelah membuat pesanan, minta rekening tujuan kepada staf kedai. Transfer bank masih dikonfirmasi secara manual oleh staf.</p>
+                <div class="mt-3 rounded-lg border border-white/[0.06] bg-[#101319] p-3 text-[10px]">
+                    <p class="font-semibold text-slate-300">Rekening tujuan transfer</p>
+                    @forelse ($transferRecipients as $recipient)
+                        <div class="mt-2 border-t border-white/[0.06] pt-2">
+                            <p class="text-slate-400">Bank: <strong class="text-white">{{ $recipient->bank }}</strong></p>
+                            <p class="mt-1 text-slate-400">Atas nama: <strong class="text-white">{{ $recipient->account_name }}</strong></p>
+                            <p class="mt-1 text-slate-400">Nomor rekening: <strong class="text-white">{{ $recipient->account_number }}</strong></p>
+                        </div>
+                    @empty
+                        <p class="mt-1 text-amber-200">Rekening tujuan belum diatur. Silakan hubungi staf kedai sebelum transfer.</p>
+                    @endforelse
+                    <p class="mt-2 text-[9px] leading-relaxed text-slate-500">Pembayaran transfer dikonfirmasi secara manual oleh staf.</p>
+                </div>
             </div>
 
             <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300 px-4 py-3.5 text-xs font-black text-slate-950 shadow-lg shadow-amber-950/20 transition hover:bg-amber-200">

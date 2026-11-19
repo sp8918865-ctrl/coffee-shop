@@ -118,7 +118,17 @@
                     @if ($payment->nomor_rekening)
                         <p class="mt-1">Nomor rekening: <strong class="text-white">{{ $payment->nomor_rekening }}</strong>.</p>
                     @endif
-                    <p class="mt-1">Silakan minta detail rekening tujuan kepada staf kedai. Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
+                    <p class="mt-3 font-semibold text-slate-300">Rekening tujuan transfer</p>
+                    @forelse ($transferRecipients as $recipient)
+                        <div class="mt-2 border-t border-white/[0.06] pt-2">
+                            <p>Bank: <strong class="text-white">{{ $recipient->bank }}</strong></p>
+                            <p class="mt-1">Atas nama: <strong class="text-white">{{ $recipient->account_name }}</strong></p>
+                            <p class="mt-1">Nomor rekening: <strong class="text-white">{{ $recipient->account_number }}</strong></p>
+                        </div>
+                    @empty
+                        <p class="mt-1 text-amber-200">Rekening tujuan belum diatur. Silakan hubungi staf kedai sebelum transfer.</p>
+                    @endforelse
+                    <p class="mt-2">Pembayaran baru dianggap lunas setelah dikonfirmasi staf.</p>
                 </div>
             @endif
             @if ($payment->payment_status === 'pending')

@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\DiningTable;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\TransferRecipient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -38,6 +39,7 @@ class PublicOrderingTest extends TestCase
             ->assertSee('QRIS')
             ->assertSee('Bayar tunai di kedai')
             ->assertSee('Transfer bank')
+            ->assertSee('Rekening tujuan belum diatur')
             ->assertSee('Rp 18.000')
             ->assertDontSee('cash_received')
             ->assertDontSee('Nominal uang tunai yang disiapkan')
@@ -214,7 +216,7 @@ class PublicOrderingTest extends TestCase
             ->assertOk()
             ->assertSee('Transfer bank')
             ->assertSee('Bank yang akan kamu gunakan: <strong class="text-white">BCA</strong>.', false)
-            ->assertSee('minta detail rekening tujuan kepada staf kedai')
+            ->assertSee('Rekening tujuan belum diatur')
             ->assertSee('Belum dibayar');
     }
 
@@ -320,7 +322,7 @@ class PublicOrderingTest extends TestCase
         $this->get(route('checkout'))
             ->assertOk()
             ->assertSee('name="bank_pengirim"', false)
-            ->assertDontSee('Rekening tujuan belum diatur');
+            ->assertSee('Rekening tujuan belum diatur');
 
         $this->from(route('checkout'))
             ->post(route('checkout.place'), [
@@ -346,6 +348,51 @@ class PublicOrderingTest extends TestCase
             'payment_method' => 'transfer',
             'bank_pengirim' => 'Bank Nusantara',
         ]);
+    }
+
+    public function test_configured_transfer_recipient_is_shown_during_checkout_and_order_tracking(): void
+    {
+        TransferRecipient::create([
+            'bank' => 'BCA',
+            'account_name' => 'Warung Luwak',
+            'account_number' => '1234567890',
+        ]);
+        TransferRecipient::create([
+            'bank' => 'BRI',
+            'account_name' => 'Warung Luwak Cabang',
+            'account_number' => '9876543210',
+        ]);
+        $this->scanQr();
+        $product = $this->product();
+        $this->withSession(['public_order_cart' => [$product->product_id => 1]]);
+
+        $this->get(route('checkout'))
+            ->assertOk()
+            ->assertSee('Rekening tujuan transfer')
+            ->assertSee('Warung Luwak')
+            ->assertSee('1234567890')
+            ->assertSee('Warung Luwak Cabang')
+            ->assertSee('9876543210');
+
+        $this->post(route('checkout.place'), [
+            'customer_name' => 'Ayu',
+            'order_type' => 'take_away',
+            'payment_method' => 'transfer',
+            'bank_pengirim' => 'BCA',
+            'nama_pemilik_rekening' => 'Ayu Rahma',
+            'nomor_rekening' => '9876543210',
+        ])->assertRedirect();
+
+        $order = Order::firstOrFail();
+        $this->get(route('orders.track', $order->public_tracking_token))
+            ->assertOk()
+            ->assertSee('Rekening tujuan transfer')
+            ->assertSee('Bank: <strong class="text-white">BCA</strong>', false)
+            ->assertSee('Atas nama: <strong class="text-white">Warung Luwak</strong>', false)
+            ->assertSee('Nomor rekening: <strong class="text-white">1234567890</strong>', false)
+            ->assertSee('BRI')
+            ->assertSee('Warung Luwak Cabang')
+            ->assertSee('9876543210');
     }
 
     public function test_order_is_not_retrievable_by_sequential_id_or_another_token(): void

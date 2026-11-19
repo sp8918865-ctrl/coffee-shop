@@ -35,6 +35,7 @@
 
                     if (auth()->user()?->role !== 'barista') {
                         $adminMenu[] = ['label' => 'Data Barista & Staf', 'route' => 'admin.staf', 'icon' => 'users'];
+                        $adminMenu[] = ['label' => 'Penerima Transfer', 'route' => 'admin.transfer-recipient', 'icon' => 'landmark'];
                     }
                 @endphp
                 <nav class="flex gap-1 overflow-x-auto text-xs font-medium md:flex-col">

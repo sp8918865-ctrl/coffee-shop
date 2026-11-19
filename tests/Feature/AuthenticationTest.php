@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\AppSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
-use App\Models\AppSetting;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -219,6 +219,57 @@ class AuthenticationTest extends TestCase
             ->assertSee('data-url="http://192.168.1.2:8000/menu/qr-entry?signature=', false)
             ->assertSee('http://192.168.1.2:8000/api/v1/customer/qr-access?signature=', false)
             ->assertSee('data-url="http://192.168.1.2:8000/api/v1/customer/qr-access?signature=', false);
+    }
+
+    public function test_manager_can_manage_transfer_recipient_but_barista_cannot(): void
+    {
+        $admin = User::factory()->create(['role' => 'owner']);
+        $this->actingAs($admin)
+            ->get(route('admin.transfer-recipient'))
+            ->assertOk()
+            ->assertSee('Tambah rekening tujuan pembayaran')
+            ->assertSee('Penerima Transfer');
+
+        $this->post(route('admin.transfer-recipient.store'), [
+            'bank' => 'BCA',
+            'account_name' => 'Warung Luwak',
+            'account_number' => '1234567890',
+        ])->assertRedirect(route('admin.transfer-recipient'));
+
+        $this->post(route('admin.transfer-recipient.store'), [
+            'bank' => 'BRI',
+            'account_name' => 'Warung Luwak Cabang',
+            'account_number' => '9876543210',
+        ])->assertRedirect(route('admin.transfer-recipient'));
+
+        $this->assertDatabaseCount('transfer_recipients', 2);
+        $this->get(route('admin.transfer-recipient'))
+            ->assertOk()
+            ->assertSee('Warung Luwak')
+            ->assertSee('1234567890')
+            ->assertSee('Warung Luwak Cabang')
+            ->assertSee('9876543210')
+            ->assertSee('Hapus rekening');
+        $firstRecipient = \App\Models\TransferRecipient::where('bank', 'BCA')->firstOrFail();
+        $secondRecipient = \App\Models\TransferRecipient::where('bank', 'BRI')->firstOrFail();
+
+        $this->put(route('admin.transfer-recipient.update', $firstRecipient), [
+            'bank' => 'BNI',
+            'account_name' => 'Warung Luwak',
+            'account_number' => '1234567890',
+        ])->assertRedirect(route('admin.transfer-recipient'));
+        $this->assertDatabaseHas('transfer_recipients', [
+            'id' => $firstRecipient->id,
+            'bank' => 'BNI',
+        ]);
+
+        $this->delete(route('admin.transfer-recipient.destroy', $secondRecipient))
+            ->assertRedirect(route('admin.transfer-recipient'));
+        $this->assertDatabaseCount('transfer_recipients', 1);
+
+        $this->actingAs(User::factory()->create(['role' => 'barista']))
+            ->get(route('admin.transfer-recipient'))
+            ->assertForbidden();
     }
 
     public function test_mobile_devices_cannot_access_admin_pages_or_actions(): void
