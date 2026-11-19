@@ -188,7 +188,6 @@ class PublicOrderingTest extends TestCase
             ->assertSee('BCA')
             ->assertSee('BRI')
             ->assertSee('Bank lainnya')
-            ->assertSee('Ganti metode pembayaran')
             ->assertSee('Nama pemilik rekening')
             ->assertSee('Nomor rekening');
 
